@@ -1,0 +1,21 @@
+{
+  "name": "animitter",
+  "version": "0.1.0",
+  "description": "Animitter is an animation loop + EventEmitter for browser, node or amd.",
+  "main": "lib/animitter.js",
+  "directories": {
+    "test": "test"
+  },
+  "scripts": {
+    "test": "make test"
+  },
+  "repository": "http://github.com/hapticdata/animitter",
+  "author": "Kyle Phillips",
+  "license": "MIT",
+  "repositories" : [
+    { "type" : "git", "url" : "http://github.com/hapticdata/toxiclibsjs" }
+  ],
+  "maintainers" : [
+    { "name" : "Kyle Phillips", "email" : "kyle@haptic-data.com" }
+  ]
+}
