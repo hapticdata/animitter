@@ -8,12 +8,12 @@
 
 //**_Basic use:_**
 //
-//		animitter(function(){
+//		loop = animitter(function(){
 //			//do this every time
 //			if(Math.random() > 0.9) this.complete();
-//		});
+//		}).start();
 
-var animitter = (function(){
+(function(){
 	//utils.js
 	var utils = (function(){
 		var module = {}, exports = {};
@@ -459,14 +459,12 @@ var animitter = (function(){
 		exports.Animator = Animator;
 		/** @expose */
 		exports.EventEmitter = EventEmitter;
-		
-		if( typeof define === 'function' && define['amd']){
-			define(function(){ return exports; });
-		} else if( typeof window === 'object' ){
-			window['animitter'] = exports;
-		}
 		return module.exports;
 	}());
-	return animitter;
+	animitter.version = "0.1.0";
+	if( typeof define === "function" && define["amd"]){
+		define(function(){ return animitter; });
+	} else if( typeof window === "object" ){
+		window["animitter"] = animitter;
+	}
 }());
-animitter.version = "0.1.0";

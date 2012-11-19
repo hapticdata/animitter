@@ -8,7 +8,7 @@
 
 //**_Basic use:_**
 //
-//		animitter(function(){
+//		loop = animitter(function(){
 //			//do this every time
 //			if(Math.random() > 0.9) this.complete();
-//		});
+//		}).start();

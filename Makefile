@@ -1,6 +1,6 @@
 REPORTER ?= list
 
-all: test build
+all: build test
 
 build-lib:
 	node tools/concat.js

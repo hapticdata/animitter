@@ -4,7 +4,7 @@ var fs = require('fs'),
 var src = './lib/';
 
 var output = String(fs.readFileSync(__dirname+'/_pre.js'));
-output += '\nvar animitter = (function(){';
+output += '\n(function(){';
 
 [	'utils',
 	'events',
@@ -21,9 +21,13 @@ output += '\nvar animitter = (function(){';
 	].join('\n');
 });
 output += [
-	'\n\treturn animitter;',
-	'}());',
-	'animitter.version = "'+version+'";'
+	'\n\tanimitter.version = "'+version+'";',
+	'\tif( typeof define === "function" && define["amd"]){',
+	'\t\tdefine(function(){ return animitter; });',
+	'\t} else if( typeof window === "object" ){',
+	'\t\twindow["animitter"] = animitter;',
+	'\t}',
+	'}());'
 ].join('\n');
 
 fs.writeFileSync('./animitter.js', output );
