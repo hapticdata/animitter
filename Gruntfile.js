@@ -29,7 +29,7 @@ module.exports = function(grunt){
                     './src/module-exporter.js',
                     './src/rAF-polyfill.js',
                     './src/isArray-polyfill.js',
-                    './src/animitter.js',
+                    './src/animitter-factory.js',
                     './src/events.js',
                     './src/inherits.js'
                 ]

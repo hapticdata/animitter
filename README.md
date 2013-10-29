@@ -1,8 +1,8 @@
 # Animitter
-## Event-based animation loops in browser and in Node
+## Event-based loops in browser and in Node
 _by [Kyle Phillips](http://haptic-data.com)_
 
-[![Build Status](https://travis-ci.org/hapticdata/animitter.png?branch=develop)](https://travis-ci.org/hapticdata/animitter)
+[![Build Status](https://travis-ci.org/hapticdata/animitter.png?branch=master)](https://travis-ci.org/hapticdata/animitter)
 
 Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop.
 It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several
@@ -97,3 +97,9 @@ loop.on('update', function( self, frameCount ){
 });
 loop.start();
 ```
+
+
+### animitter.running
+The `animitter` object comes with the property `running` this counter indicates the number
+of animitter instances that are currently animating. This can be helpful for debugging to ensure
+that you are properly stopping all of your animitter instances.
