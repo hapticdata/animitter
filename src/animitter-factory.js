@@ -25,7 +25,7 @@ function createAnimitter( root, inherits, EventEmitter ){
             this.__animating = false;
             this.__completed = true;
             this.stop();
-            this.emit('complete', this, this.frameCount);
+            this.emit('complete', this.frameCount);
             return this;
         },
         getFPS: function(){
@@ -58,20 +58,20 @@ function createAnimitter( root, inherits, EventEmitter ){
                 return this;
             }
             //emit **start** once at the beginning
-            this.emit('start', this, this.frameCount);
+            this.emit('start', this.frameCount);
             exports.running += 1;
             this.__animating = true;
 
             step = function(){
                 self.frameCount++;
                 if( self.__async ){
-                    self.emit('update', self, self.frameCount, function(){
+                    self.emit('update', self.frameCount, function(){
                         self.__animating = true;
                         drawFrame();
-                    }, self);
+                    });
                     return false;
                 } else {
-                    self.emit('update', self, self.frameCount);
+                    self.emit('update', self.frameCount);
                     return true;
                 }
             };
@@ -126,7 +126,7 @@ function createAnimitter( root, inherits, EventEmitter ){
         stop: function(){
             this.__animating = false;
             exports.running -= 1;
-            this.emit('stop', this, this.frameCount);
+            this.emit('stop', this.frameCount);
             return this;
         }
     };
