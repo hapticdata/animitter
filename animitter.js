@@ -1,7 +1,7 @@
 // Animitter 0.2.0
 // Build: 2013-10-28
 // by [Kyle Phillips](http://haptic-data.com)
-// Available under [MIT License](http://github.com/hapticdata/animitter/tree/master/LICENSE)
+// Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)
 // Env: Browser + Node
 
 
