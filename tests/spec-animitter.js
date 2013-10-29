@@ -11,11 +11,11 @@ function specTest( anim, chai ){
     //create a fn that completes that loop at frame 100
     var completeAt = function(done, frame){
         frame = frame || 50;
-        return function(self, frameCount){
+        return function(frameCount){
             if( frameCount === frame ){
-                self.complete();
-                expect(self.isAnimating()).to.be.false;
-                expect(self.isCompleted()).to.be.true;
+                this.complete();
+                expect(this.isAnimating()).to.be.false;
+                expect(this.isCompleted()).to.be.true;
                 if( done ) {
                     done();
                 }
@@ -23,37 +23,37 @@ function specTest( anim, chai ){
         };
     };
 
-	describe('running counter', function(){
-		var threads = [];
+    describe('running counter', function(){
+        var threads = [];
         var noop = function(){};
         for( var i=0; i<100; i++){
-			threads.push(anim(noop));
+            threads.push(anim(noop));
         }
 
-		it('should have 0 animations running', function(){
-			expect(anim.running).to.equal(0);
-		});
+        it('should have 0 animations running', function(){
+            expect(anim.running).to.equal(0);
+        });
 
-		it('should have 100 animations running', function(){
-			threads.forEach(function( thread ){
-				thread.start();
-			});
-			expect(anim.running).to.equal(100);
-		});
+        it('should have 100 animations running', function(){
+            threads.forEach(function( thread ){
+                thread.start();
+            });
+            expect(anim.running).to.equal(100);
+        });
 
-		it('should have 0 animations running', function(){
-			threads.forEach(function( thread, i ){
-				//complete() and stop() should both drop the running counter
-				if( i % 2 === 0){
-					thread.stop();
-				} else {
-					thread.complete();
-				}
-			});
-			expect(anim.running).to.equal(0);
-		});
+        it('should have 0 animations running', function(){
+            threads.forEach(function( thread, i ){
+                //complete() and stop() should both drop the running counter
+                if( i % 2 === 0){
+                    thread.stop();
+                } else {
+                    thread.complete();
+                }
+            });
+            expect(anim.running).to.equal(0);
+        });
 
-	});
+    });
 
     describe('Animitter', function(){
         this.timeout(10000);
@@ -78,9 +78,9 @@ function specTest( anim, chai ){
 
         describe('animitter.start()', function(){
             it('should start a new loop', function(done){
-                anim.start(function(loop, frameCount){
+                anim.start(function(frameCount){
                     if( frameCount === 100 ){
-                        loop.complete();
+                        this.complete();
                         done();
                     }
                 });
@@ -91,15 +91,16 @@ function specTest( anim, chai ){
             it('should start an asynchronous loop', function(done){
                 var frames = 0;
                 anim
-                .async(function(self, frameCount, next){
+                .async(function(frameCount, next){
                     frames++;
                     expect(next).to.be.a('function');
                     expect(frameCount).to.equal(frames);
                     if( frameCount === 10 ){
-                        self.complete();
+                        this.complete();
                         done();
                         return;
                     }
+                    var self = this;
                     setTimeout(function(){
                         //make sure it isnt secretly running
                         expect(self.frameCount).to.equal(frameCount);
@@ -117,7 +118,7 @@ function specTest( anim, chai ){
                     this.timeout(210 * (1000/fps));
                     var lastTime = Date.now();
                     anim({ fps: fps }, completeAt(null, 10))
-                        .on('update', function(loop, frameCount){
+                        .on('update', function(frameCount){
                             var now = Date.now();
                             expect(now-lastTime).to.be.within((1000/fps)-tolerance, (1000/fps)+tolerance);
                             lastTime = now;
@@ -137,9 +138,9 @@ function specTest( anim, chai ){
         });
 
         describe('#frameCount', function(){
-            it('should provide frameCount as 2nd parameter', function(done){
+            it('should provide frameCount as 1st parameter', function(done){
                 var frame = 0;
-                anim.start(function(self, frameCount){
+                anim.start(function(frameCount){
                     frame++;
                     expect(frameCount).to.equal(frame);
                     if( frameCount === 100 ){
@@ -154,11 +155,11 @@ function specTest( anim, chai ){
             it('should be deferred, calling update 100 times, starting at frame 1', function(){
                 var loop = anim(completeAt());
                 var updated = 0;
-                loop.on('update', function(self, frameCount){
+                loop.on('update', function(frameCount){
                     updated++;
                     if( updated === 100 ){
                         expect(frameCount).to.equal(100);
-                        self.complete();
+                        this.complete();
                         done();
                     }
                 });
@@ -189,8 +190,7 @@ function specTest( anim, chai ){
             it('should trigger complete', function( done ){
                 var loop = anim
                     .start(completeAt(null,30))
-                    .on('complete', function(_loop, frameCount){
-                        expect(_loop).to.equal(loop);
+                    .on('complete', function(frameCount){
                         expect(frameCount).to.be.a('number');
                         expect(this.isCompleted()).to.be.true;
                         done();
@@ -202,13 +202,12 @@ function specTest( anim, chai ){
             it('should trigger stop event and stop the loop', function(done){
                 var stopAtFrame = 10;
                 var loop = anim
-                    .start(function(loop, frameCount){
+                    .start(function(frameCount){
                         if(frameCount === stopAtFrame ){
-                            loop.stop();
+                            this.stop();
                         }
                     })
-                    .on('stop', function(_loop, frameCount){
-                        expect(loop).to.equal(_loop);
+                    .on('stop', function(frameCount){
                         expect(frameCount).to.equal(stopAtFrame);
                         expect(loop.isAnimating()).to.be.false;
                         expect(loop.isCompleted()).to.be.false;
