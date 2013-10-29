@@ -4,9 +4,7 @@ _by [Kyle Phillips](http://haptic-data.com)_
 
 [![Build Status](https://travis-ci.org/hapticdata/animitter.png?branch=master)](https://travis-ci.org/hapticdata/animitter)
 
-Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop.
-It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several
-additional features, such as asynchronous execution of the next frame.
+Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop. It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several additional features, such as asynchronous execution of the next frame.
 
 ## Installation:
 ### Browser
@@ -100,6 +98,36 @@ loop.on('update', function(frameCount, nextFrame){
 });
 loop.start();
 ```
+
+### Custom Events + Adding / Removing listeners
+Animitter uses the same [EventEmitter](http://nodejs.org/api/events.html) as Node.js. This allows you to `emit` events, add listeners with `on`,`once`,`addListener` or remove listeners with `removeListener` or `removeAllListeners`.
+
+The following example periodically emits a custom event. A listener is added for the event which removes itself after a few uses:
+```javascript
+var timesDovesHaveFlown = 0,
+    shouldMakeDovesFly = function(){ return Math.random() > 0.9; };
+
+var loop = animitter(function(frameCount){
+    //play an animation
+    if( shouldMakeDovesFly() ){
+        //after the event-type, pass any parameters you want the listener to receive
+        this.emit('doves-fly', doves);
+    }
+});
+
+var makeDovesFly = function(doves){
+    timesDovesHaveFlown++;
+    //make doves fly here
+    if( timesDovesHaveFlown > 4 ){
+        this.removeListener('doves-fly', makeDovesFly);
+    }
+};
+
+loop.on('doves-fly', makeDovesFly);
+loop.start();
+
+```
+
 
 
 ### animitter.running
