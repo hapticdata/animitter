@@ -2,22 +2,16 @@
   "name": "animitter",
   "version": "0.1.0",
   "description": "Animitter is an animation loop + EventEmitter for browser, node or amd.",
-  "main": "lib/animitter.js",
+  "main": "./animitter.js",
   "directories": {
     "test": "test"
   },
   "scripts": {
-    "test": "make test"
+    "test": "grunt test"
   },
   "repository": "http://github.com/hapticdata/animitter",
   "author": "Kyle Phillips",
   "license": "MIT",
-  "repositories": [
-    {
-      "type": "git",
-      "url": "http://github.com/hapticdata/toxiclibsjs"
-    }
-  ],
   "maintainers": [
     {
       "name": "Kyle Phillips",
@@ -36,6 +30,11 @@
     "karma-phantomjs-launcher": "~0.1.0",
     "karma": "~0.10.2",
     "mocha": "~1.13.0",
-    "karma-mocha": "~0.1.0"
+    "karma-mocha": "~0.1.0",
+    "grunt": "~0.4.1",
+    "grunt-contrib-concat": "~0.3.0",
+    "grunt-contrib-uglify": "~0.2.4",
+    "grunt-karma": "~0.6.2",
+    "grunt-mocha-test": "~0.7.0"
   }
 }

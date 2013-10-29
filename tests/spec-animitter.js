@@ -2,7 +2,7 @@ if( typeof define === 'function' && define.amd ){
     define(['animitter', 'chai'], specTest);
 } else if( typeof require === 'function' ){
     //node
-    specTest( require('../../lib/animitter'), require('chai') );
+    specTest( require('../animitter'), require('chai') );
 }
 
 function specTest( anim, chai ){
@@ -68,7 +68,7 @@ function specTest( anim, chai ){
 
         describe('animitter()', function(){
             it('should create a loop, but not start it', function(done){
-                loop = anim(completeAt(done));
+                loop = anim(completeAt(done, 60));
                 expect(loop.isAnimating()).to.be.false;
                 expect(loop.frameCount).to.equal(0);
                 loop.start();
@@ -116,7 +116,7 @@ function specTest( anim, chai ){
                 return function(done){
                     this.timeout(210 * (1000/fps));
                     var lastTime = Date.now();
-                    anim({ fps: fps }, completeAt(null, 25))
+                    anim({ fps: fps }, completeAt(null, 10))
                         .on('update', function(loop, frameCount){
                             var now = Date.now();
                             expect(now-lastTime).to.be.within((1000/fps)-tolerance, (1000/fps)+tolerance);
@@ -188,7 +188,7 @@ function specTest( anim, chai ){
         describe('#complete()', function(){
             it('should trigger complete', function( done ){
                 var loop = anim
-                    .start(completeAt())
+                    .start(completeAt(null,30))
                     .on('complete', function(_loop, frameCount){
                         expect(_loop).to.equal(loop);
                         expect(frameCount).to.be.a('number');
