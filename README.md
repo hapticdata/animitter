@@ -1,9 +1,11 @@
 # Animitter
-## Event-based animation in browser and in Node
+## Event-based animation loops in browser and in Node
 _by [Kyle Phillips](http://haptic-data.com)_
 
+[![Build Status](https://travis-ci.org/hapticdata/animitter.png?branch=develop)](https://travis-ci.org/hapticdata/animitter)
+
 Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop.
-It uses `requestAnimationFrame` with an automatic fallback to `setTimeout` and offers several
+It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several
 additional features, such as asynchronous execution of the next frame.
 
 ## Installation:
@@ -20,7 +22,7 @@ or with **require.js/amd**:
 	require(['animitter'], function( animitter ){});
 
 ## Usage:
-### start a new animation loop immediately
+### start a new animation loop
 
 ```javascript
 var loop = animitter(function(){
@@ -35,14 +37,22 @@ var loop = animitter(function(){
 	//do something
 });
 
+loop.on('start', function(self, frameCount){
+    //loop started
+});
+
 loop.on('update', function(self, frameCount){
-	if( frameCount > 99 ){
-		//this is scoped to the Animitter instance
-		this.complete();
+	if( frameCount === 100 ){
+		//`this` is also scoped to the Animitter instance
+		self.complete();
 	}
 });
 
-loop.on('complete', function(){
+loop.on('stop', function(self, frameCount){
+    //this will get triggered on a `complete` also
+});
+
+loop.on('complete', function(self, frameCount){
 	//done
 });
 
@@ -51,7 +61,8 @@ loop.start();
 
 ### Start an asynchronous loop
 
-Animitter allows you to create a loop that will pause at each frame until explicitly invoked:
+Animitter allows you to create a loop that will pause at each frame until explicitly invoked.
+It does this by passing a function as a 3rd argument:
 
 ```javascript
 var asyncLoop = animitter({ async: true }, function(loop, frameCount, nextFrame ){
@@ -71,8 +82,10 @@ Throttle a `requestAnimationFrame` loop down to the specified frames-per-second.
 
 ```javascript
 var loop = animitter({ fps: 30 }, function(self, frameCount){
-	
+    //do something	
 });
+
+loop.start();
 ```
 
 ### Combine options
