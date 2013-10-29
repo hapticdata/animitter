@@ -57,6 +57,35 @@ loop.on('complete', function(frameCount){
 loop.start();   
 ```
 
+### Custom Events + Adding / Removing listeners
+Animitter uses the same [EventEmitter](http://nodejs.org/api/events.html) as Node.js. This allows you to `emit` events, add listeners with `on`,`once`,`addListener` or remove listeners with `removeListener` or `removeAllListeners`.
+
+The following example periodically emits a custom event. A listener is added for the event which removes itself after a few uses:
+```javascript
+var timesDovesHaveFlown = 0,
+    shouldMakeDovesFly = function(){ return Math.random() > 0.9; };
+
+var loop = animitter(function(frameCount){
+    //play an animation
+    if( shouldMakeDovesFly() ){
+        //after the event-type, pass any parameters you want the listener to receive
+        this.emit('doves-fly', doves);
+    }
+});
+
+var makeDovesFly = function(doves){
+    timesDovesHaveFlown++;
+    //make doves fly here
+    if( timesDovesHaveFlown > 4 ){
+        this.removeListener('doves-fly', makeDovesFly);
+    }
+};
+
+loop.on('doves-fly', makeDovesFly);
+loop.start();
+
+```
+
 ### Start an asynchronous loop
 
 Animitter allows you to create a loop that will pause at each frame until explicitly invoked.
@@ -98,37 +127,6 @@ loop.on('update', function(frameCount, nextFrame){
 });
 loop.start();
 ```
-
-### Custom Events + Adding / Removing listeners
-Animitter uses the same [EventEmitter](http://nodejs.org/api/events.html) as Node.js. This allows you to `emit` events, add listeners with `on`,`once`,`addListener` or remove listeners with `removeListener` or `removeAllListeners`.
-
-The following example periodically emits a custom event. A listener is added for the event which removes itself after a few uses:
-```javascript
-var timesDovesHaveFlown = 0,
-    shouldMakeDovesFly = function(){ return Math.random() > 0.9; };
-
-var loop = animitter(function(frameCount){
-    //play an animation
-    if( shouldMakeDovesFly() ){
-        //after the event-type, pass any parameters you want the listener to receive
-        this.emit('doves-fly', doves);
-    }
-});
-
-var makeDovesFly = function(doves){
-    timesDovesHaveFlown++;
-    //make doves fly here
-    if( timesDovesHaveFlown > 4 ){
-        this.removeListener('doves-fly', makeDovesFly);
-    }
-};
-
-loop.on('doves-fly', makeDovesFly);
-loop.start();
-
-```
-
-
 
 ### animitter.running
 The `animitter` object comes with the property `running` this counter indicates the number
