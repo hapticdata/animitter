@@ -1,17 +1,19 @@
-#Animitter
-##Event-based animation in browser and in Node
+# Animitter
+## Event-based loops in browser and in Node
 _by [Kyle Phillips](http://haptic-data.com)_
 
+[![Build Status](https://travis-ci.org/hapticdata/animitter.png?branch=master)](https://travis-ci.org/hapticdata/animitter)
+
 Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop.
-It uses `requestAnimationFrame` with an automatic fallback to `setTimeout` and offers several
+It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several
 additional features, such as asynchronous execution of the next frame.
 
-#Installation:
-##Node.js:
+## Installation:
+### Node.js:
 
 	npm install animitter
 
-##Browser
+### Browser
 copy `./animitter.js` or `./animitter.min.js` into your project
 
 	<script src="js/animitter.js"></script>
@@ -19,24 +21,85 @@ or with **require.js/amd**:
 
 	require(['animitter'], function( animitter ){});
 
-#Basic use:
-##start a new animation loop immediately
-	var loop = animitter(function(){
-		//do something
-	}).start();
-##start a new animation loop, listen to its built-in events
-	var loop = animitter(function(){
-		//do something
-	});
+## Usage:
+### start a new animation loop
 
-	loop.on('update', function(){
-		if( this.frameCount > 99 ){
-			this.complete();
-		}
-	});
+```javascript
+var loop = animitter(function(){
+	//do something
+}).start();
+```
 
-	loop.on('complete', function(){
-		//done
-	});
+### start a new animation loop, listen to its built-in events
 
-	loop.start();
+```javascript
+var loop = animitter(function(){
+	//do something
+});
+
+loop.on('start', function(self, frameCount){
+    //loop started
+});
+
+loop.on('update', function(self, frameCount){
+	if( frameCount === 100 ){
+		//`this` is also scoped to the Animitter instance
+		self.complete();
+	}
+});
+
+loop.on('stop', function(self, frameCount){
+    //this will get triggered on a `complete` also
+});
+
+loop.on('complete', function(self, frameCount){
+	//done
+});
+
+loop.start();	
+```
+
+### Start an asynchronous loop
+
+Animitter allows you to create a loop that will pause at each frame until explicitly invoked.
+It does this by passing a function as a 3rd argument:
+
+```javascript
+var asyncLoop = animitter({ async: true }, function(loop, frameCount, nextFrame ){
+	render();
+	doSomethingAsynchronous(function onComplete(){
+		//now we are ready for the next frame loop
+		nextFrame();
+	});
+});
+	
+asyncLoop.start();
+```
+
+### Start an fps-throttled loop
+
+Throttle a `requestAnimationFrame` loop down to the specified frames-per-second.
+
+```javascript
+var loop = animitter({ fps: 30 }, function(self, frameCount){
+    //do something	
+});
+
+loop.start();
+```
+
+### Combine options
+
+```javascript
+var loop = animitter({ async: true, fps: 30 });
+loop.on('update', function( self, frameCount ){
+	render();
+});
+loop.start();
+```
+
+
+### animitter.running
+The `animitter` object comes with the property `running` this counter indicates the number
+of animitter instances that are currently animating. This can be helpful for debugging to ensure
+that you are properly stopping all of your animitter instances.
