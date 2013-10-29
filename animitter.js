@@ -1,4 +1,4 @@
-// Animitter 0.2.0
+// Animitter 0.3.0
 // Build: 2013-10-29
 // by [Kyle Phillips](http://haptic-data.com)
 // Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)
@@ -114,7 +114,7 @@ function createAnimitter( root, inherits, EventEmitter ){
                     self.emit('update', self.frameCount, function(){
                         self.__animating = true;
                         drawFrame();
-                    }, self);
+                    });
                     return false;
                 } else {
                     self.emit('update', self.frameCount);

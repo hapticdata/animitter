@@ -9,10 +9,6 @@ It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationfr
 additional features, such as asynchronous execution of the next frame.
 
 ## Installation:
-### Node.js:
-
-    npm install animitter
-
 ### Browser
 copy `./animitter.js` or `./animitter.min.js` into your project
 
@@ -20,6 +16,10 @@ copy `./animitter.js` or `./animitter.min.js` into your project
 or with **require.js/amd**:
 
     require(['animitter'], function( animitter ){});
+### Node.js:
+
+    npm install animitter
+
 
 ## Usage:
 ### start a new animation loop
