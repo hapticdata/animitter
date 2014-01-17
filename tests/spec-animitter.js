@@ -87,6 +87,17 @@ function specTest( anim, chai ){
             });
         });
 
+        describe('animitter().next()', function(){
+            it('should run the loop one time', function( done ){
+                var loop = anim(function(frameCount){
+                    expect( loop.isAnimating() ).to.be.false;
+                    expect( frameCount ).to.equal(1);
+                    done();
+                });
+                loop.next();
+            });
+        });
+
         describe('animitter.async()', function(){
             it('should start an asynchronous loop', function(done){
                 var frames = 0;

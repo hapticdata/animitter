@@ -1,0 +1,23 @@
+{
+  "name": "animitter",
+  "version": "0.4.0",
+  "homepage": "https://github.com/hapticdata/animitter",
+  "authors": [
+    "Kyle Phillips <kyle@haptic-data.com>"
+  ],
+  "description": "animitter is a requestAnimationFrame + EventEvmitter for browser, node.js and AMD",
+  "main": "/animitter.js",
+  "keywords": [
+    "animation",
+    "requestAnimationFrame",
+    "EventEmitter",
+    "AMD",
+    "javascript"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "tests"
+  ]
+}

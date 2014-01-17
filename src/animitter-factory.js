@@ -43,6 +43,10 @@ function createAnimitter( root, inherits, EventEmitter ){
         isAsync: function(){
             return this.__async;
         },
+        next: function(){
+            this.frameCount++;
+            this.emit('update', this.frameCount);
+        },
         //####myAnimation.start(function(){})
         //start the animation
         //optional **callback** will be attached to .on('update',fn)

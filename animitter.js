@@ -1,5 +1,5 @@
-// Animitter 0.3.0
-// Build: 2013-10-29
+// Animitter 0.4.0
+// Build: 2014-01-17
 // by [Kyle Phillips](http://haptic-data.com)
 // Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)
 // Env: Browser + Node
@@ -88,6 +88,10 @@ function createAnimitter( root, inherits, EventEmitter ){
         },
         isAsync: function(){
             return this.__async;
+        },
+        next: function(){
+            this.frameCount++;
+            this.emit('update', this.frameCount);
         },
         //####myAnimation.start(function(){})
         //start the animation
