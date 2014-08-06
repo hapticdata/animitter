@@ -145,7 +145,7 @@ function createAnimitter( root, inherits, EventEmitter ){
     //**alternately:** anim({ async: true }, function( next ){ next(); })
     /** @expose */
     exports = function( opts, fn ){
-        if( arguments.length === 1){
+        if( arguments.length === 1 && typeof opts === 'function'){
             fn = opts;
             opts = {};
         }
