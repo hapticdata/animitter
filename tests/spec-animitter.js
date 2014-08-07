@@ -23,35 +23,62 @@ function specTest( anim, chai ){
         };
     };
 
-    describe('running counter', function(){
+    var createLoops = function( n ){
         var threads = [];
         var noop = function(){};
-        for( var i=0; i<100; i++){
+        for( var i=0; i<n; i++){
             threads.push(anim(noop));
         }
+        return threads;
+    };
+
+    describe('running counter', function(){
 
         it('should have 0 animations running', function(){
+            var threads = createLoops(100);
             expect(anim.running).to.equal(0);
         });
 
         it('should have 100 animations running', function(){
+            var threads = createLoops(100);
             threads.forEach(function( thread ){
                 thread.start();
             });
             expect(anim.running).to.equal(100);
-        });
-
-        it('should have 0 animations running', function(){
-            threads.forEach(function( thread, i ){
-                //complete() and stop() should both drop the running counter
-                if( i % 2 === 0){
-                    thread.stop();
-                } else {
-                    thread.complete();
-                }
+            threads.forEach(function( thread ){
+                thread.stop();
             });
             expect(anim.running).to.equal(0);
         });
+
+        it('should have 0 animations running, from being stopped and completed', function(){
+            var threads = createLoops(100);
+            threads.forEach(function( thread ){
+                thread.start();
+            });
+            threads.forEach(function( thread, i ){
+                //complete() and stop() should both drop the running counter
+                thread[ (i%2===0) ? 'stop' : 'complete' ]();
+            });
+            expect(anim.running).to.equal(0);
+        });
+
+        it('should not go negative when calling stop multiple times in a row', function(){
+            var threads = createLoops(100);
+            threads.forEach(function( thread ){
+                thread.start();
+            });
+
+            threads.forEach(function( thread ){
+                //call a many times, only count once
+                thread.stop();
+                thread.complete();
+                thread.stop();
+            });
+
+            expect( anim.running ).to.equal( 0 );
+        });
+
 
     });
 
@@ -68,7 +95,7 @@ function specTest( anim, chai ){
 
         describe('animitter()', function(){
             it('should create a loop, but not start it', function(done){
-                loop = anim(completeAt(done, 60));
+                var loop = anim(completeAt(done, 60));
                 expect(loop.isAnimating()).to.be.false;
                 expect(loop.frameCount).to.equal(0);
                 loop.start();
@@ -87,14 +114,14 @@ function specTest( anim, chai ){
             });
         });
 
-        describe('animitter().next()', function(){
+        describe('animitter().update()', function(){
             it('should run the loop one time', function( done ){
                 var loop = anim(function(frameCount){
                     expect( loop.isAnimating() ).to.be.false;
                     expect( frameCount ).to.equal(1);
                     done();
                 });
-                loop.next();
+                loop.update();
             });
         });
 
@@ -102,7 +129,7 @@ function specTest( anim, chai ){
             it('should start an asynchronous loop', function(done){
                 var frames = 0;
                 anim
-                .async(function(frameCount, next){
+                .async(function(frameCount, deltaTime, next){
                     frames++;
                     expect(next).to.be.a('function');
                     expect(frameCount).to.equal(frames);
@@ -123,13 +150,21 @@ function specTest( anim, chai ){
         });
 
         describe('animitter({ fps: fps })', function(){
+            it('should accept params without function', function(){
+                var fps = 15;
+                var loop = anim({ fps: fps });
+                expect( loop.getFPS() ).to.equal( fps );
+            });
+        });
+
+        describe('animitter({ fps: fps }, fn)', function(){
             var testAt = function(fps, tolerance){
                 tolerance = tolerance || 100;
                 return function(done){
                     this.timeout(210 * (1000/fps));
                     var lastTime = Date.now();
                     anim({ fps: fps }, completeAt(null, 10))
-                        .on('update', function(frameCount){
+                        .on('update', function(frameCount, deltaTime){
                             var now = Date.now();
                             expect(now-lastTime).to.be.within((1000/fps)-tolerance, (1000/fps)+tolerance);
                             lastTime = now;
@@ -206,6 +241,48 @@ function specTest( anim, chai ){
                         expect(this.isCompleted()).to.be.true;
                         done();
                     });
+            });
+        });
+
+        describe('#reset()', function(){
+            it('should reset a loop for reuse', function( done ){
+                var loop = anim();
+                var i = 0;
+                var lastFrame = 100;
+                var timesCompleted = 0;
+                var timesReset = 0;
+                loop.on('update', function( frameCount ){
+                    //make sure frames are all reaching update
+                    i++;
+                    expect( frameCount ).to.equal( i );
+                    //call complete on lastFrame
+                    if( i === lastFrame ){
+                        this.complete();
+                    }
+                });
+
+                // on first complete, reset, on 2nd complete, done()
+                loop.on('complete', function( frameCount ){
+                    expect( frameCount ).to.equal( lastFrame );
+                    timesCompleted++;
+                    if( timesCompleted === 1 ){
+                        loop.reset();
+                    } else {
+                        expect( timesReset ).to.equal( 1 );
+                        done();
+                    }
+                });
+
+                //on first reset, start again
+                loop.on('reset', function( frameCount ){
+                    //expect frameCount to be 0, cause it hasnt started back up yet
+                    expect( frameCount ).to.equal( 0 );
+                    timesReset++;
+                    i = 0;
+                    loop.start();
+                });
+
+                loop.start();
             });
         });
 

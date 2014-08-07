@@ -1,5 +1,5 @@
 // Animitter 0.4.0
-// Build: 2014-01-17
+// Build: 2014-08-06
 // by [Kyle Phillips](http://haptic-data.com)
 // Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)
 // Env: Browser + Node
@@ -41,7 +41,11 @@ if( typeof define === 'function' && define.amd ){
 }());
 
 Array.isArray = Array.isArray || function(a){
-        return a.toString() == '[object Array]';
+    return ({}).toString.call(a) == '[object Array]';
+};
+
+Date.now = Date.now || function now() {
+    return new Date().getTime();
 };
 
 function createAnimitter( root, inherits, EventEmitter ){
@@ -54,6 +58,8 @@ function createAnimitter( root, inherits, EventEmitter ){
         opts = opts || {};
         /** @expose */
         this.frameCount = 0;
+        /** @expose */
+        this.deltaTime = 0;
         /** @private */
         this.__animating = false;
         /** @private */
@@ -62,17 +68,21 @@ function createAnimitter( root, inherits, EventEmitter ){
         this.__async = (opts.async === true);
         /** @private */
         this.__fps = opts.fps || 60;
+        /** @private */
+        this.__lastTime = Date.now();
     };
 
     var methods = {
         //####myAnimation.complete()
         //stops the animation and emits *'complete'*
         complete: function(){
-            this.__animating = false;
-            this.__completed = true;
             this.stop();
-            this.emit('complete', this.frameCount);
+            this.__completed = true;
+            this.emit('complete', this.frameCount, this.deltaTime);
             return this;
+        },
+        getDeltaTime: function(){
+            return this.deltaTime;
         },
         getFPS: function(){
             return this.__fps;
@@ -89,9 +99,18 @@ function createAnimitter( root, inherits, EventEmitter ){
         isAsync: function(){
             return this.__async;
         },
-        next: function(){
+        update: function(){
             this.frameCount++;
             this.emit('update', this.frameCount);
+        },
+        reset: function(){
+            if( this.__animating ){
+                this.stop();
+            }
+            this.__completed = false;
+            this.frameCount = 0;
+            this.emit('reset', this.frameCount);
+            return this;
         },
         //####myAnimation.start(function(){})
         //start the animation
@@ -111,17 +130,23 @@ function createAnimitter( root, inherits, EventEmitter ){
             this.emit('start', this.frameCount);
             exports.running += 1;
             this.__animating = true;
+            var now = Date.now();
+            this.deltaTime = now - this.__lastTime;
+            this.__lastTime = now;
 
             step = function(){
                 self.frameCount++;
+                var now = Date.now();
+                self.deltaTime = now - self.__lastTime;
+                self.__lastTime = now;
                 if( self.__async ){
-                    self.emit('update', self.frameCount, function(){
+                    self.emit('update', self.frameCount, self.deltaTime, function(){
                         self.__animating = true;
                         drawFrame();
                     });
                     return false;
                 } else {
-                    self.emit('update', self.frameCount);
+                    self.emit('update', self.frameCount, self.deltaTime);
                     return true;
                 }
             };
@@ -174,9 +199,11 @@ function createAnimitter( root, inherits, EventEmitter ){
         //####myAnimation.stop()
         //stops the animation but does not mark as completed
         stop: function(){
-            this.__animating = false;
-            exports.running -= 1;
-            this.emit('stop', this.frameCount);
+            if( this.__animating ){
+                this.__animating = false;
+                exports.running -= 1;
+                this.emit('stop', this.frameCount, this.deltaTime);
+            }
             return this;
         }
     };
@@ -191,7 +218,7 @@ function createAnimitter( root, inherits, EventEmitter ){
     //**alternately:** anim({ async: true }, function( next ){ next(); })
     /** @expose */
     exports = function( opts, fn ){
-        if( arguments.length === 1){
+        if( arguments.length === 1 && typeof opts === 'function'){
             fn = opts;
             opts = {};
         }
@@ -327,6 +354,9 @@ EventEmitter.prototype.emit = function() {
 		return false;
 	}
 };
+
+EventEmitter.prototype.trigger = EventEmitter.prototype.emit;
+
 /** @expose */
 EventEmitter.prototype.addListener = function(type, listener) {
 	if ('function' !== typeof listener) {
@@ -426,6 +456,10 @@ EventEmitter.prototype.removeListener = function(type, listener) {
 
 	return this;
 };
+
+//alias 'off' to 'removeListener'
+EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+
 /** @expose */
 EventEmitter.prototype.removeAllListeners = function(type) {
 	if (arguments.length === 0) {

@@ -4,7 +4,7 @@ _by [Kyle Phillips](http://haptic-data.com)_
 
 [![Build Status](https://travis-ci.org/hapticdata/animitter.png?branch=master)](https://travis-ci.org/hapticdata/animitter)
 
-Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop. It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several additional features, such as asynchronous execution of the next frame.
+Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop. It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several additional features, such as framerate throttling, providing `deltaTime` in milliseconds between frames, asynchronous execution of the next frame and more.
 
 ## Installation:
 ### Browser
@@ -23,7 +23,7 @@ or with **require.js/amd**:
 ### start a new animation loop
 
 ```javascript
-var loop = animitter(function(frameCount){
+var loop = animitter(function(frameCount, deltaTime){
     //do something
 }).start();
 ```
@@ -31,7 +31,7 @@ var loop = animitter(function(frameCount){
 ### start a new animation loop, listen to its built-in events
 
 ```javascript
-var loop = animitter(function(frameCount){
+var loop = animitter(function(frameCount, deltaTime){
     //do something
 });
 
@@ -39,7 +39,7 @@ loop.on('start', function(frameCount){
     //loop started
 });
 
-loop.on('update', function(frameCount){
+loop.on('update', function(frameCount, deltaTime){
     if( frameCount === 100 ){
         //`this` is scoped to the Animitter instance
         this.complete();
@@ -54,6 +54,10 @@ loop.on('complete', function(frameCount){
     //done
 });
 
+loop.on('reset', function(frameCount){
+
+});
+
 loop.start();   
 ```
 
@@ -65,7 +69,7 @@ The following example periodically emits a custom event. A listener is added for
 var timesDovesHaveFlown = 0,
     shouldMakeDovesFly = function(){ return Math.random() > 0.9; };
 
-var loop = animitter(function(frameCount){
+var loop = animitter(function(frameCount, deltaTime){
     //play an animation
     if( shouldMakeDovesFly() ){
         //after the event-type, pass any parameters you want the listener to receive
@@ -89,10 +93,10 @@ loop.start();
 ### Start an asynchronous loop
 
 Animitter allows you to create a loop that will pause at each frame until explicitly invoked.
-It does this by passing a function as a 2nd argument:
+It does this by passing a function as a 3rd argument:
 
 ```javascript
-var asyncLoop = animitter({ async: true }, function(frameCount, nextFrame ){
+var asyncLoop = animitter({ async: true }, function(frameCount, deltaTime, nextFrame ){
     render();
     doSomethingAsync(function onComplete(){
         //now we are ready for the next frame loop
@@ -108,7 +112,7 @@ asyncLoop.start();
 Throttle a `requestAnimationFrame` loop down to the specified frames-per-second.
 
 ```javascript
-var loop = animitter({ fps: 30 }, function(frameCount){
+var loop = animitter({ fps: 30 }, function(frameCount, deltaTime){
     //do something  
 });
 
@@ -119,7 +123,7 @@ loop.start();
 
 ```javascript
 var loop = animitter({ async: true, fps: 30 });
-loop.on('update', function(frameCount, nextFrame){
+loop.on('update', function(frameCount, deltaTime, nextFrame){
     render();
     doSomethingAsync(function(){
         nextFrame();

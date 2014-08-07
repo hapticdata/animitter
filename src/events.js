@@ -91,6 +91,9 @@ EventEmitter.prototype.emit = function() {
 		return false;
 	}
 };
+
+EventEmitter.prototype.trigger = EventEmitter.prototype.emit;
+
 /** @expose */
 EventEmitter.prototype.addListener = function(type, listener) {
 	if ('function' !== typeof listener) {
@@ -190,6 +193,10 @@ EventEmitter.prototype.removeListener = function(type, listener) {
 
 	return this;
 };
+
+//alias 'off' to 'removeListener'
+EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+
 /** @expose */
 EventEmitter.prototype.removeAllListeners = function(type) {
 	if (arguments.length === 0) {

@@ -8,6 +8,8 @@ function createAnimitter( root, inherits, EventEmitter ){
         opts = opts || {};
         /** @expose */
         this.frameCount = 0;
+        /** @expose */
+        this.deltaTime = 0;
         /** @private */
         this.__animating = false;
         /** @private */
@@ -16,17 +18,21 @@ function createAnimitter( root, inherits, EventEmitter ){
         this.__async = (opts.async === true);
         /** @private */
         this.__fps = opts.fps || 60;
+        /** @private */
+        this.__lastTime = Date.now();
     };
 
     var methods = {
         //####myAnimation.complete()
         //stops the animation and emits *'complete'*
         complete: function(){
-            this.__animating = false;
-            this.__completed = true;
             this.stop();
-            this.emit('complete', this.frameCount);
+            this.__completed = true;
+            this.emit('complete', this.frameCount, this.deltaTime);
             return this;
+        },
+        getDeltaTime: function(){
+            return this.deltaTime;
         },
         getFPS: function(){
             return this.__fps;
@@ -43,9 +49,22 @@ function createAnimitter( root, inherits, EventEmitter ){
         isAsync: function(){
             return this.__async;
         },
-        next: function(){
+        //####myAnimation.update();
+        //emit the next update, once
+        update: function(){
             this.frameCount++;
             this.emit('update', this.frameCount);
+        },
+        //####myAnimation.reset();
+        //reset the animation loop
+        reset: function(){
+            if( this.__animating ){
+                this.stop();
+            }
+            this.__completed = false;
+            this.frameCount = 0;
+            this.emit('reset', this.frameCount);
+            return this;
         },
         //####myAnimation.start(function(){})
         //start the animation
@@ -65,17 +84,23 @@ function createAnimitter( root, inherits, EventEmitter ){
             this.emit('start', this.frameCount);
             exports.running += 1;
             this.__animating = true;
+            var now = Date.now();
+            this.deltaTime = now - this.__lastTime;
+            this.__lastTime = now;
 
             step = function(){
                 self.frameCount++;
+                var now = Date.now();
+                self.deltaTime = now - self.__lastTime;
+                self.__lastTime = now;
                 if( self.__async ){
-                    self.emit('update', self.frameCount, function(){
+                    self.emit('update', self.frameCount, self.deltaTime, function(){
                         self.__animating = true;
                         drawFrame();
                     });
                     return false;
                 } else {
-                    self.emit('update', self.frameCount);
+                    self.emit('update', self.frameCount, self.deltaTime);
                     return true;
                 }
             };
@@ -128,9 +153,11 @@ function createAnimitter( root, inherits, EventEmitter ){
         //####myAnimation.stop()
         //stops the animation but does not mark as completed
         stop: function(){
-            this.__animating = false;
-            exports.running -= 1;
-            this.emit('stop', this.frameCount);
+            if( this.__animating ){
+                this.__animating = false;
+                exports.running -= 1;
+                this.emit('stop', this.frameCount, this.deltaTime);
+            }
             return this;
         }
     };
