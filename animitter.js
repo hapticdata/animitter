@@ -1,4 +1,4 @@
-// Animitter 0.4.0
+// Animitter 0.5.0
 // Build: 2014-08-06
 // by [Kyle Phillips](http://haptic-data.com)
 // Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)
