@@ -18,8 +18,6 @@ function createAnimitter( root, inherits, EventEmitter ){
         this.__async = (opts.async === true);
         /** @private */
         this.__fps = opts.fps || 60;
-        /** @private */
-        this.__lastTime = Date.now();
     };
 
     var methods = {
@@ -53,7 +51,12 @@ function createAnimitter( root, inherits, EventEmitter ){
         //emit the next update, once
         update: function(){
             this.frameCount++;
-            this.emit('update', this.frameCount);
+            /** @private */
+            this.__lastTime = this.__lastTime || Date.now();
+            var now = Date.now();
+            this.deltaTime = now - this.__lastTime;
+            this.__lastTime = now;
+            this.emit('update', this.frameCount, this.deltaTime);
         },
         //####myAnimation.reset();
         //reset the animation loop
@@ -91,7 +94,7 @@ function createAnimitter( root, inherits, EventEmitter ){
             step = function(){
                 self.frameCount++;
                 var now = Date.now();
-                self.deltaTime = now - self.__lastTime;
+                self.deltaTime = now - (self.__lastTime || now);
                 self.__lastTime = now;
                 if( self.__async ){
                     self.emit('update', self.frameCount, self.deltaTime, function(){
