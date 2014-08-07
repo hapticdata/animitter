@@ -99,10 +99,14 @@ function createAnimitter( root, inherits, EventEmitter ){
         isAsync: function(){
             return this.__async;
         },
+        //####myAnimation.update();
+        //emit the next update, once
         update: function(){
             this.frameCount++;
             this.emit('update', this.frameCount);
         },
+        //####myAnimation.reset();
+        //reset the animation loop
         reset: function(){
             if( this.__animating ){
                 this.stop();
