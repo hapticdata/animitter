@@ -32,6 +32,11 @@ function createAnimitter( root, inherits, EventEmitter ){
         getDeltaTime: function(){
             return this.deltaTime;
         },
+        getElapsedTime: function(){
+            //total elapsed time between start() and the last frame
+            //if hasn't started or was reset, its 0
+            return !!this.__startTime ? this.__lastTime - this.__startTime : 0;
+        },
         getFPS: function(){
             return this.__fps;
         },
@@ -65,6 +70,7 @@ function createAnimitter( root, inherits, EventEmitter ){
                 this.stop();
             }
             this.__completed = false;
+            this.__startTime = null;
             this.frameCount = 0;
             this.emit('reset', this.frameCount);
             return this;
@@ -89,7 +95,7 @@ function createAnimitter( root, inherits, EventEmitter ){
             this.__animating = true;
             var now = Date.now();
             this.deltaTime = now - this.__lastTime;
-            this.__lastTime = now;
+            this.__startTime = this.__lastTime = now;
 
             step = function(){
                 self.frameCount++;

@@ -183,16 +183,99 @@ function specTest( anim, chai ){
             it('should pace its loop at 5', testAt(5));
         });
 
-        describe('#frameCount', function(){
-            it('should provide frameCount as 1st parameter', function(done){
+        describe('callback(frameCount, deltaTime)', function(){
+            it('should provide frameCount as 1st parameter and deltaTime as 2nd', function(done){
                 var frame = 0;
-                anim.start(function(frameCount){
+                anim.start(function(frameCount, deltaTime){
                     frame++;
                     expect(frameCount).to.equal(frame);
+                    expect(deltaTime).to.be.a('number');
                     if( frameCount === 100 ){
                         done();
                     }
                 });
+            });
+        });
+
+        describe('#getFrameCount()', function(){
+            it('should match provided callbacks frameCount', function(done){
+                anim.start(function(frameCount){
+                    expect(this.getFrameCount()).to.equal(frameCount);
+                    if( frameCount === 100 ){
+                        this.complete();
+                        done();
+                    }
+                });
+            });
+
+            it('should be 0 when a loop is reset', function(done){
+                anim.start(function(){
+                    var loop = this;
+                    if( this.getFrameCount() === 100 ){
+                        this.reset();
+                        setTimeout(function(){
+                            expect(loop.getFrameCount()).to.equal(0);
+                            done();
+                        }, 500);
+                    }
+                });
+            });
+
+        });
+
+        describe('#getElapsedTime()', function(){
+            it('should be 0 if it never started', function(done){
+                var loop = anim();
+                setTimeout(function(){
+                    expect(loop.getElapsedTime()).to.equal(0);
+                    done();
+                }, 500);
+            });
+
+            it('should be 0 if it was reset', function(done){
+                var loop = anim()
+                    .on('update', function(frameCount){
+                        if( frameCount === 10 ){
+                            this.reset();
+                            setTimeout(function(){
+                                expect(loop.getElapsedTime()).to.equal(0);
+                                done();
+                            }, 500);
+                        }
+                    })
+                    .start();
+            });
+
+            it('should track the total time the loop played for', function(done){
+                anim()
+                    .on('start', function(){
+                        var loop = this,
+                            delay = 1000,
+                            thresh = 32; //milliseconds
+                        setTimeout(function(){
+                            expect(loop.getElapsedTime()).to.be.within(delay-thresh,delay+thresh);
+                            done();
+                        }, delay);
+                    })
+                    .start();
+            });
+            it('should stop counting forward when stopped', function(done){
+                var lastElapsed;
+                anim()
+                    .on('start', function(){
+                        var loop = this,
+                            delay = 1000;
+
+                        setTimeout(function(){
+                            expect(loop.getElapsedTime()).to.equal(lastElapsed);
+                            done();
+                        }, delay);
+                    })
+                    .once('update', function(){
+                        lastElapsed = this.getElapsedTime();
+                        this.stop();
+                    })
+                    .start();
             });
         });
 
