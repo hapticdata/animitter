@@ -1,5 +1,5 @@
 // Animitter 0.5.0
-// Build: 2014-08-06
+// Build: 2014-09-16
 // by [Kyle Phillips](http://haptic-data.com)
 // Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)
 // Env: Browser + Node
@@ -68,8 +68,6 @@ function createAnimitter( root, inherits, EventEmitter ){
         this.__async = (opts.async === true);
         /** @private */
         this.__fps = opts.fps || 60;
-        /** @private */
-        this.__lastTime = Date.now();
     };
 
     var methods = {
@@ -83,6 +81,11 @@ function createAnimitter( root, inherits, EventEmitter ){
         },
         getDeltaTime: function(){
             return this.deltaTime;
+        },
+        getElapsedTime: function(){
+            //total elapsed time between start() and the last frame
+            //if hasn't started or was reset, its 0
+            return !!this.__startTime ? this.__lastTime - this.__startTime : 0;
         },
         getFPS: function(){
             return this.__fps;
@@ -103,7 +106,12 @@ function createAnimitter( root, inherits, EventEmitter ){
         //emit the next update, once
         update: function(){
             this.frameCount++;
-            this.emit('update', this.frameCount);
+            /** @private */
+            this.__lastTime = this.__lastTime || Date.now();
+            var now = Date.now();
+            this.deltaTime = now - this.__lastTime;
+            this.__lastTime = now;
+            this.emit('update', this.frameCount, this.deltaTime);
         },
         //####myAnimation.reset();
         //reset the animation loop
@@ -112,6 +120,7 @@ function createAnimitter( root, inherits, EventEmitter ){
                 this.stop();
             }
             this.__completed = false;
+            this.__startTime = null;
             this.frameCount = 0;
             this.emit('reset', this.frameCount);
             return this;
@@ -136,12 +145,12 @@ function createAnimitter( root, inherits, EventEmitter ){
             this.__animating = true;
             var now = Date.now();
             this.deltaTime = now - this.__lastTime;
-            this.__lastTime = now;
+            this.__startTime = this.__lastTime = now;
 
             step = function(){
                 self.frameCount++;
                 var now = Date.now();
-                self.deltaTime = now - self.__lastTime;
+                self.deltaTime = now - (self.__lastTime || now);
                 self.__lastTime = now;
                 if( self.__async ){
                     self.emit('update', self.frameCount, self.deltaTime, function(){
