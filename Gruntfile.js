@@ -1,11 +1,13 @@
 module.exports = function(grunt){
 
+    var banner = '// Animitter @VERSION\n// Build: @DATE\n// by [Kyle Phillips](http://haptic-data.com)\n// Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)\n// Env: Browser + Node';
+
     var pkg = grunt.file.readJSON('package.json');
 
     //Project configuration
     grunt.initConfig({
         pkg: pkg,
-        banner: grunt.file.read('./src/banner.js')
+        banner: banner
             .replace(/@VERSION/g, pkg.version)
             .replace(/@DATE/g, grunt.template.today('yyyy-mm-dd')) + '\n',
         uglify: {
