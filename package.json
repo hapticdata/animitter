@@ -36,9 +36,12 @@
     "karma-mocha": "^0.1.6",
     "karma-phantomjs-launcher": "^0.1.4",
     "karma": "~0.12.21",
-    "grunt-karma": "^0.8.3"
+    "grunt-karma": "^0.8.3",
+    "tape": "^4.2.0"
   },
   "dependencies": {
-    "inherits": "^2.0.1"
+    "inherits": "^2.0.1",
+    "r-a-f": "^1.0.0",
+    "raf": "^3.1.0"
   }
 }

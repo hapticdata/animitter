@@ -1,14 +1,8 @@
 var EventEmitter          = require('events').EventEmitter,
     inherits              = require('inherits'),
-    requestAnimationFrame = require('animation-frame').request,
-    cancelAnimationFrame  = require('animation-frame').cancel,
+    requestAnimationFrame = require('raf'),
+    cancelAnimationFrame  = require('raf').cancel,
     methods;
-
-
-//polyfill Date.now for real-old browsers
-Date.now = Date.now || function now() {
-    return new Date().getTime();
-};
 
 
 function returnTrue(){ return true; }
@@ -17,6 +11,7 @@ function returnTrue(){ return true; }
 function makeThrottle(fps){
     var delay = 1000/fps;
     var lastTime = Date.now();
+    var half = Math.ceil(1000 / 60) / 2;
 
 
     if( fps >= 60 ){
@@ -26,7 +21,9 @@ function makeThrottle(fps){
     return function(){
         //if a custom fps is requested
         var now = Date.now();
-        if( now - lastTime < delay ){
+        //is this frame within 8.5ms of the target?
+        //if so then next frame is gonna be too late
+        if(now - lastTime < delay - half){
             return false;
         }
         lastTime = now;
@@ -152,7 +149,7 @@ methods = {
         this.__startTime = null;
         this.frameCount = 0;
 
-        this.emit('reset', this.frameCount);
+        this.emit('reset', 0, 0, this.frameCount);
         return this;
     },
 
@@ -205,6 +202,7 @@ methods = {
 
         drawFrame();
 
+        return this;
     },
 
     /**
@@ -253,25 +251,41 @@ for(var method in methods){
 }
 
 
-function createAnimitter(opts, fn){
-    if( arguments.length === 1 && typeof opts === 'function'){
-        fn = opts;
-        opts = {};
+/**
+ * create an animitter instance,
+ * @param {Object} [options]
+ * @param {Number} [options.fps]
+ * @param {Function} fn( deltaTime:Number, frameCount:Number, elapsedTime:Number )
+ * @returns {Animitter}
+ */
+module.exports = exports = function createAnimitter(options, fn){
+
+    if( arguments.length === 1 && typeof options === 'function'){
+        fn = options;
+        options = {};
     }
 
-    var _instance = new Animitter( opts );
+    var _instance = new Animitter( options );
 
     if( fn ){
         _instance.on('update', fn);
     }
 
     return _instance;
-}
+};
 
 
-module.exports = exports = createAnimitter;
 
 exports.Animitter = Animitter;
-exports.EventEmitter = EventEmitter;
 
+//helpful to inherit from when using bundled
+exports.EventEmitter = EventEmitter;
+//keep a global counter of all loops running, helpful to watch in dev tools
 exports.running = 0;
+
+
+//polyfill Date.now for real-old browsers
+Date.now = Date.now || function now() {
+    return new Date().getTime();
+};
+
