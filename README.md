@@ -141,3 +141,26 @@ updates the loop once.
 The `animitter` object comes with the property `running` this counter indicates the number
 of animitter instances that are currently animating. This can be helpful for debugging to ensure
 that you are properly stopping all of your animitter instances.
+
+
+
+## Tests
+
+Animitter comes with TAP tests. These tests are compatible in node and in browser. 
+**To run the tests in node:**
+
+```
+npm test
+```
+
+**To run tests in browser:**
+A very simple way of accomplishing this, is to use something like [budo](http://github.com/mattdesl/budo) and watch your console for logs:
+
+```
+npm install budo -g
+budo test.js
+```
+
+**MIT License**
+
+
