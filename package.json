@@ -7,7 +7,8 @@
     "test": "test"
   },
   "scripts": {
-    "test": "./node_modules/grunt-cli/bin/grunt test"
+    "test": "node test.js",
+    "build": "browserify ./index.js --standalone animitter | node prepend-banner.js > animitter.js && uglifyjs animitter.js > animitter.min.js"
   },
   "repository": "http://github.com/hapticdata/animitter",
   "author": "Kyle Phillips",
@@ -19,29 +20,12 @@
     }
   ],
   "devDependencies": {
-    "chai": "~1.8.1",
-    "karma-script-launcher": "~0.1.0",
-    "karma-firefox-launcher": "~0.1.0",
-    "karma-chrome-launcher": "~0.1.0",
-    "karma-html2js-preprocessor": "~0.1.0",
-    "karma-coffee-preprocessor": "~0.1.0",
-    "mocha": "^1.21.4",
-    "grunt": "~0.4.1",
-    "grunt-contrib-concat": "~0.3.0",
-    "grunt-contrib-uglify": "~0.2.4",
-    "grunt-mocha-test": "~0.7.0",
-    "grunt-cli": "~0.1.9",
-    "requirejs": "^2.1.14",
-    "karma-requirejs": "^0.2.2",
-    "karma-mocha": "^0.1.6",
-    "karma-phantomjs-launcher": "^0.1.4",
-    "karma": "~0.12.21",
-    "grunt-karma": "^0.8.3",
-    "tape": "^4.2.0"
+    "tape": "^4.2.0",
+    "browserify": "^11.0.1",
+    "uglify-js": "^2.4.24"
   },
   "dependencies": {
     "inherits": "^2.0.1",
-    "r-a-f": "^1.0.0",
     "raf": "^3.1.0"
   }
 }
