@@ -43,7 +43,7 @@ function Animitter( opts ){
     this.elapsedTime = 0;
 
     /** @private */
-    this.__animating = false;
+    this.__running = false;
     /** @private */
     this.__completed = false;
 
@@ -123,8 +123,8 @@ methods = {
      *
      * @return {boolean}
      */
-    isAnimating: function(){
-        return this.__animating;
+    isRunning: function(){
+        return this.__running;
     },
 
     /**
@@ -177,12 +177,12 @@ methods = {
         var rAFID;
         //dont let a second animation start on the same object
         //use *.on('update',fn)* instead
-        if(this.__animating){
+        if(this.__running){
             return this;
         }
 
         exports.running += 1;
-        this.__animating = true;
+        this.__running = true;
         this.__lastTime = this.__lastTime || now;
         this.deltaTime = now - this.__lastTime;
         this.elapsedTime += this.deltaTime;
@@ -195,7 +195,7 @@ methods = {
             if(self.__isReadyForUpdate()){
                 self.update();
             }
-            if(self.__animating){
+            if(self.__running){
                 rAFID = requestAnimationFrame(drawFrame);
             } else {
                 cancelAnimationFrame(rAFID);
@@ -214,8 +214,8 @@ methods = {
      * @return {Animitter}
      */
     stop: function(){
-        if( this.__animating ){
-            this.__animating = false;
+        if( this.__running ){
+            this.__running = false;
             exports.running -= 1;
             this.emit('stop', this.deltaTime, this.elapsedTime, this.frameCount);
         }

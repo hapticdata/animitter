@@ -82,10 +82,10 @@ test('invoke animitter()', function(t){
 
     //create a loop but not start it
     var loop = animitter();
-    t.equal(loop.isAnimating(), false, 'should not be animating since the loop has not started');
+    t.equal(loop.isRunning(), false, 'should not be animating since the loop has not started');
     t.equal(loop.frameCount, 0, 'should not have updated yet');
     loop.start();
-    t.equal(loop.isAnimating(), true, 'should be animating now that start() has been called');
+    t.equal(loop.isRunning(), true, 'should be animating now that start() has been called');
     loop.stop();
     //loop.dispose();
 });
@@ -114,7 +114,7 @@ test('animitter().dispose()', function(t){
         //should stop the loop and remove all listeners
         loop.dispose();
 
-        t.ok(!loop.isAnimating(), 'should not be animating');
+        t.ok(!loop.isRunning(), 'should not be animating');
 
         events.forEach(function(evtName){
             t.equal(loop.listeners(evtName).length, 0, 'should have all listeners removed for ' + evtName);
@@ -130,7 +130,7 @@ test('animitter().update()', function(t){
     t.plan(2);
     //calling update() without calling start()
     var loop = animitter(function(deltaTime, elapsedTime, frameCount){
-        t.equal(loop.isAnimating(), false, 'false cause it was never started');
+        t.equal(loop.isRunning(), false, 'false cause it was never started');
         t.equal(frameCount, 1, 'should run only once');
     });
 
@@ -312,7 +312,7 @@ test('should trigger stop event and stop the loop', function(t){
         })
         .on('stop', function(delta, elapsed, frameCount){
             t.equal(frameCount, totalFrames, 'stopped at ' + totalFrames);
-            t.notOk(this.isAnimating(), 'is not animating');
+            t.notOk(this.isRunning(), 'is not animating');
             t.notOk(this.isCompleted(), 'is not completed');
         })
         .start();
