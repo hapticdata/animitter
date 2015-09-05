@@ -3,6 +3,7 @@ var test = require('tape'),
     animitter = require('./index');
 
 
+
 function invoke(arr, fnString){
     arr.forEach(function(item){
         item[fnString]();
@@ -215,9 +216,9 @@ test('animitter().getElapsedTime() should stop counting forward when stopped', f
             t.equal(loop.getElapsedTime(), lastElapsed, 'elapsed time stopped counting forward after stopped');
         }, delay);
     });
-    loop.once('update', function(){
-        lastElapsed = this.getElapsedTime();
+    loop.once('update', function(deltaTime, elapsedTime){
         this.stop();
+        lastElapsed = elapsedTime;
     });
     loop.start();
 });

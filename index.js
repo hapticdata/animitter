@@ -41,6 +41,8 @@ function Animitter( opts ){
     this.deltaTime = 0;
 
     /** @private */
+    this.__elapsedTimeAtUpdate = 0;
+    /** @private */
     this.__animating = false;
     /** @private */
     this.__completed = false;
@@ -80,7 +82,7 @@ methods = {
     },
 
     /**
-     * get time since between last 2 frames
+     * get milliseconds between the last 2 updates
      *
      * @return {Number}
      */
@@ -89,14 +91,19 @@ methods = {
     },
 
     /**
-     * get the total time elapsed since it started
+     * get the total milliseconds that the animation has ran.
+     * This is the cumlative of the deltaTime between frames and
+     * if currently running, the time between invocation and the last update.
      *
      * @return {Number}
      */
     getElapsedTime: function(){
-        //total elapsed time between start() and the last frame
-        //if hasn't started or was reset, its 0
-        return !!this.__startTime ? this.__lastTime - this.__startTime : 0;
+        var remainder = 0;
+        if(this.__animating){
+            var now = Date.now();
+            remainder = now - (this.__lastTime||now);
+        }
+        return this.__elapsedTimeAtUpdate + remainder;
     },
 
     /**
@@ -146,7 +153,8 @@ methods = {
     reset: function(){
         this.stop();
         this.__completed = false;
-        this.__startTime = null;
+        this.deltaTime = 0;
+        this.__elapsedTimeAtUpdate = 0;
         this.frameCount = 0;
 
         this.emit('reset', 0, 0, this.frameCount);
@@ -182,8 +190,9 @@ methods = {
 
         exports.running += 1;
         this.__animating = true;
+        this.__lastTime = this.__lastTime || now;
         this.deltaTime = now - this.__lastTime;
-        this.__startTime = this.__lastTime = now;
+        this.__elapsedTimeAtUpdate += this.deltaTime;
 
         //emit **start** once at the beginning
         this.emit('start', this.deltaTime, 0, this.frameCount);
@@ -215,8 +224,7 @@ methods = {
         if( this.__animating ){
             this.__animating = false;
             exports.running -= 1;
-            var elapsedTime = this.getElapsedTime();
-            this.emit('stop', this.deltaTime, elapsedTime, this.frameCount);
+            this.emit('stop', this.deltaTime, this.__elapsedTimeAtUpdate, this.frameCount);
         }
         return this;
     },
@@ -233,10 +241,10 @@ methods = {
         this.__lastTime = this.__lastTime || Date.now();
         var now = Date.now();
         this.deltaTime = now - this.__lastTime;
+        this.__elapsedTimeAtUpdate += this.deltaTime;
         this.__lastTime = now;
 
-        var elapsedTime = this.getElapsedTime();
-        this.emit('update', this.deltaTime, elapsedTime, this.frameCount);
+        this.emit('update', this.deltaTime, this.__elapsedTimeAtUpdate, this.frameCount);
         return this;
     }
 
@@ -255,7 +263,7 @@ for(var method in methods){
  * create an animitter instance,
  * @param {Object} [options]
  * @param {Number} [options.fps]
- * @param {Function} fn( deltaTime:Number, frameCount:Number, elapsedTime:Number )
+ * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
 module.exports = exports = function createAnimitter(options, fn){
