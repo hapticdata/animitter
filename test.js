@@ -90,6 +90,42 @@ test('invoke animitter()', function(t){
     //loop.dispose();
 });
 
+test('animitter().dispose()', function(t){
+
+    var events = ['start', 'update', 'stop', 'complete'];
+    t.plan(1 + events.length);
+
+    var cbUpdate = function(){};
+    var cbUpdate2 = function(){};
+    var cbStart = function(){};
+    var cbStop = function(){};
+    var cbComplete = function(){};
+
+    var loop = animitter()
+        .on('start', cbStart)
+        .on('update', cbUpdate)
+        .on('update', cbUpdate2)
+        .on('stop', cbStop)
+        .on('complete', cbComplete);
+
+    loop.start();
+
+    setTimeout(function(){
+        //should stop the loop and remove all listeners
+        loop.dispose();
+
+        t.ok(!loop.isAnimating(), 'should not be animating');
+
+        events.forEach(function(evtName){
+            t.equal(loop.listeners(evtName).length, 0, 'should have all listeners removed for ' + evtName);
+        });
+
+    }, 33);
+
+});
+
+
+
 test('animitter().update()', function(t){
     t.plan(2);
     //calling update() without calling start()

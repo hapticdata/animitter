@@ -39,9 +39,9 @@ function Animitter( opts ){
     this.frameCount = 0;
     /** @expose */
     this.deltaTime = 0;
+    /** @expose */
+    this.elapsedTime = 0;
 
-    /** @private */
-    this.__elapsedTimeAtUpdate = 0;
     /** @private */
     this.__animating = false;
     /** @private */
@@ -77,7 +77,6 @@ methods = {
     dispose: function(){
         this.stop();
         this.removeAllListeners();
-        this.__isReadyForUpdate = null;
         return this;
     },
 
@@ -92,18 +91,12 @@ methods = {
 
     /**
      * get the total milliseconds that the animation has ran.
-     * This is the cumlative of the deltaTime between frames and
-     * if currently running, the time between invocation and the last update.
+     * This is the cumlative value of the deltaTime between frames
      *
      * @return {Number}
      */
     getElapsedTime: function(){
-        var remainder = 0;
-        if(this.__animating){
-            var now = Date.now();
-            remainder = now - (this.__lastTime||now);
-        }
-        return this.__elapsedTimeAtUpdate + remainder;
+        return this.elapsedTime;
     },
 
     /**
@@ -154,7 +147,7 @@ methods = {
         this.stop();
         this.__completed = false;
         this.deltaTime = 0;
-        this.__elapsedTimeAtUpdate = 0;
+        this.elapsedTime = 0;
         this.frameCount = 0;
 
         this.emit('reset', 0, 0, this.frameCount);
@@ -192,7 +185,7 @@ methods = {
         this.__animating = true;
         this.__lastTime = this.__lastTime || now;
         this.deltaTime = now - this.__lastTime;
-        this.__elapsedTimeAtUpdate += this.deltaTime;
+        this.elapsedTime += this.deltaTime;
 
         //emit **start** once at the beginning
         this.emit('start', this.deltaTime, 0, this.frameCount);
@@ -224,7 +217,7 @@ methods = {
         if( this.__animating ){
             this.__animating = false;
             exports.running -= 1;
-            this.emit('stop', this.deltaTime, this.__elapsedTimeAtUpdate, this.frameCount);
+            this.emit('stop', this.deltaTime, this.elapsedTime, this.frameCount);
         }
         return this;
     },
@@ -241,10 +234,10 @@ methods = {
         this.__lastTime = this.__lastTime || Date.now();
         var now = Date.now();
         this.deltaTime = now - this.__lastTime;
-        this.__elapsedTimeAtUpdate += this.deltaTime;
+        this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
 
-        this.emit('update', this.deltaTime, this.__elapsedTimeAtUpdate, this.frameCount);
+        this.emit('update', this.deltaTime, this.elapsedTime, this.frameCount);
         return this;
     }
 
