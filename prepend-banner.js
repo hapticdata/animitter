@@ -4,9 +4,8 @@ var date = new Date();
 
 var banner = '// Animitter ' +pkg.version+ '\n' +
              '// Build: ' + date.getFullYear() + '-' + (date.getMonth()+1) + '-' + date.getDate() + '\n' +
-             '// by [Kyle Phillips](http://haptic-data.com)\n' +
-             '// Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)\n' +
-             '// Env: Browser + Node\n';
+             '// by Kyle Phillips - http://haptic-data.com\n' +
+             '// Available under MIT License\n';
 
 process.stdin.setEncoding('utf8');
 

@@ -1,8 +1,7 @@
-// Animitter 0.5.0
-// Build: 2015-8-23
-// by [Kyle Phillips](http://haptic-data.com)
-// Available under [MIT License](http://github.com/hapticdata/animitter/blob/master/LICENSE)
-// Env: Browser + Node
+// Animitter 1.0.0
+// Build: 2015-9-7
+// by Kyle Phillips - http://haptic-data.com
+// Available under MIT License
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.animitter = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var EventEmitter          = require('events').EventEmitter,
     inherits              = require('inherits'),
@@ -45,9 +44,11 @@ function Animitter( opts ){
     this.frameCount = 0;
     /** @expose */
     this.deltaTime = 0;
+    /** @expose */
+    this.elapsedTime = 0;
 
     /** @private */
-    this.__animating = false;
+    this.__running = false;
     /** @private */
     this.__completed = false;
 
@@ -81,12 +82,11 @@ methods = {
     dispose: function(){
         this.stop();
         this.removeAllListeners();
-        this.__isReadyForUpdate = null;
         return this;
     },
 
     /**
-     * get time since between last 2 frames
+     * get milliseconds between the last 2 updates
      *
      * @return {Number}
      */
@@ -95,14 +95,13 @@ methods = {
     },
 
     /**
-     * get the total time elapsed since it started
+     * get the total milliseconds that the animation has ran.
+     * This is the cumlative value of the deltaTime between frames
      *
      * @return {Number}
      */
     getElapsedTime: function(){
-        //total elapsed time between start() and the last frame
-        //if hasn't started or was reset, its 0
-        return !!this.__startTime ? this.__lastTime - this.__startTime : 0;
+        return this.elapsedTime;
     },
 
     /**
@@ -129,8 +128,8 @@ methods = {
      *
      * @return {boolean}
      */
-    isAnimating: function(){
-        return this.__animating;
+    isRunning: function(){
+        return this.__running;
     },
 
     /**
@@ -152,7 +151,8 @@ methods = {
     reset: function(){
         this.stop();
         this.__completed = false;
-        this.__startTime = null;
+        this.deltaTime = 0;
+        this.elapsedTime = 0;
         this.frameCount = 0;
 
         this.emit('reset', 0, 0, this.frameCount);
@@ -182,14 +182,15 @@ methods = {
         var rAFID;
         //dont let a second animation start on the same object
         //use *.on('update',fn)* instead
-        if(this.__animating){
+        if(this.__running){
             return this;
         }
 
         exports.running += 1;
-        this.__animating = true;
+        this.__running = true;
+        this.__lastTime = this.__lastTime || now;
         this.deltaTime = now - this.__lastTime;
-        this.__startTime = this.__lastTime = now;
+        this.elapsedTime += this.deltaTime;
 
         //emit **start** once at the beginning
         this.emit('start', this.deltaTime, 0, this.frameCount);
@@ -199,7 +200,7 @@ methods = {
             if(self.__isReadyForUpdate()){
                 self.update();
             }
-            if(self.__animating){
+            if(self.__running){
                 rAFID = requestAnimationFrame(drawFrame);
             } else {
                 cancelAnimationFrame(rAFID);
@@ -218,11 +219,10 @@ methods = {
      * @return {Animitter}
      */
     stop: function(){
-        if( this.__animating ){
-            this.__animating = false;
+        if( this.__running ){
+            this.__running = false;
             exports.running -= 1;
-            var elapsedTime = this.getElapsedTime();
-            this.emit('stop', this.deltaTime, elapsedTime, this.frameCount);
+            this.emit('stop', this.deltaTime, this.elapsedTime, this.frameCount);
         }
         return this;
     },
@@ -239,10 +239,10 @@ methods = {
         this.__lastTime = this.__lastTime || Date.now();
         var now = Date.now();
         this.deltaTime = now - this.__lastTime;
+        this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
 
-        var elapsedTime = this.getElapsedTime();
-        this.emit('update', this.deltaTime, elapsedTime, this.frameCount);
+        this.emit('update', this.deltaTime, this.elapsedTime, this.frameCount);
         return this;
     }
 
@@ -261,7 +261,7 @@ for(var method in methods){
  * create an animitter instance,
  * @param {Object} [options]
  * @param {Number} [options.fps]
- * @param {Function} fn( deltaTime:Number, frameCount:Number, elapsedTime:Number )
+ * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
 module.exports = exports = function createAnimitter(options, fn){

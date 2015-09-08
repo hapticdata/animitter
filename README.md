@@ -4,7 +4,7 @@ _by [Kyle Phillips](http://haptic-data.com)_
 
 [![Build Status](https://travis-ci.org/hapticdata/animitter.png?branch=master)](https://travis-ci.org/hapticdata/animitter)
 
-Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop. It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several additional features, such as framerate throttling, providing `deltaTime` in milliseconds between frames, asynchronous execution of the next frame and more.
+Animitter is a combination of an [EventEmitter](http://nodejs.org/api/events.html#events_class_events_eventemitter) and a feature-filled animation loop. It uses [requestAnimationFrame](http://www.paulirish.com/2011/requestanimationframe-for-smart-animating/) with an automatic fallback to `setTimeout` and offers several additional features, such as framerate throttling, easy starting and stopping of the loop, providing `deltaTime` in milliseconds between frames, as well as total `elapsedTime` and `frameCount`. Listen to the built-in `update`, `start`, `stop`, `complete` and `reset` events, or emit your own.
 
 ## Installation:
 ### Node.js or Browserify:
@@ -53,7 +53,7 @@ loop.on('stop', function(deltaTime, elapsedTime, frameCount){
 });
 
 loop.on('complete', function(deltaTime, elapsedTime, frameCount){
-    //done
+    //done, can't be started again unless reset
 });
 
 loop.on('reset', function(deltaTime, elapsedTime, frameCount){
@@ -114,8 +114,8 @@ return the time between the last frame and the first frame in milliseconds.
 ### animitter().getFrameCount()
 return the number of times the loop has repeated.
 
-### animitter().isAnimating()
-return true if the loop has been started
+### animitter().isRunning()
+return true if the loop is currently active
 
 ### animitter().isCompleted()
 return true if the loop has been marked as completed.
@@ -160,6 +160,18 @@ A very simple way of accomplishing this, is to use something like [budo](http://
 npm install budo -g
 budo test.js
 ```
+
+
+## Breaking changes for those migrating from <1.0.0
+In v1.0.0 a few aspects of the API have changed. Most notably the parameter signature of all events is now:
+
+```js
+function onEvent( deltaTime, elapsedTime, frameCount ){ }
+```
+
+Additionally, `animitter().isAnimating()` has been renamed to `isRunning()` and `{ async: true }` option no longer is available. Instead users should call `animitter().update()` directly to update their loop asynchronously.
+
+
 
 **MIT License**
 
