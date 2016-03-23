@@ -259,7 +259,7 @@ for(var method in methods){
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-module.exports = exports = function createAnimitter(options, fn){
+function createAnimitter(options, fn){
 
     if( arguments.length === 1 && typeof options === 'function'){
         fn = options;
@@ -273,6 +273,31 @@ module.exports = exports = function createAnimitter(options, fn){
     }
 
     return _instance;
+}
+
+module.exports = exports = createAnimitter;
+
+/**
+ * create an animitter instance,
+ * where the scope is bound in all functions
+ * @param {Object} [options]
+ * @param {Number} [options.fps]
+ * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
+ * @returns {Animitter}
+ */
+exports.bound = function(options, fn){
+
+    var loop = createAnimitter(options, fn),
+        functionKeys = functions(loop),
+        hasBind = !!Function.prototype.bind,
+        fnKey;
+
+    for(var i=0; i<functionKeys.length; i++){
+        fnKey = functionKeys[i];
+        loop[fnKey] = hasBind ? loop[fnKey].bind(loop) : bindPolyfill(loop[fnKey], loop);
+    }
+
+    return loop;
 };
 
 
@@ -283,6 +308,24 @@ exports.Animitter = Animitter;
 exports.EventEmitter = EventEmitter;
 //keep a global counter of all loops running, helpful to watch in dev tools
 exports.running = 0;
+
+function bindPolyfill(fn, scope){
+    return function(){
+        return fn.apply(scope, arguments);
+    };
+}
+
+function functions(obj){
+    var keys = Object.keys(obj);
+    var arr = [];
+    for(var i=0; i<keys.length; i++){
+        if(typeof obj[keys[i]] === 'function'){
+            arr.push(keys[i]);
+        }
+    }
+    return arr;
+}
+
 
 
 //polyfill Date.now for real-old browsers
