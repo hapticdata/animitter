@@ -385,3 +385,14 @@ test('animitter().setFPS(fps)', function(t){
     loop.start();
 });
 
+test('animitter.bound()', function(t){
+    t.plan(1);
+
+    var loop = animitter.bound();
+    loop.on('update', function(){
+        t.ok(this instanceof animitter.Animitter);
+    });
+
+    setTimeout(loop.update, 10);
+
+});

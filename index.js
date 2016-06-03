@@ -289,7 +289,7 @@ module.exports = exports = createAnimitter;
 exports.bound = function(options, fn){
 
     var loop = createAnimitter(options, fn),
-        functionKeys = functions(loop),
+        functionKeys = functions(Animitter.prototype),
         hasBind = !!Function.prototype.bind,
         fnKey;
 
