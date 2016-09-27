@@ -35,6 +35,11 @@ function makeThrottle(fps){
 function Animitter( opts ){
     opts = opts || {};
 
+    this.__delay = opts.delay || 0;
+
+    /** @expose */
+    this.fixedDelta = !!opts.fixedDelta;
+
     /** @expose */
     this.frameCount = 0;
     /** @expose */
@@ -51,6 +56,41 @@ function Animitter( opts ){
 }
 
 inherits(Animitter, EventEmitter);
+
+function onStart(scope){
+    var now = Date.now();
+    var rAFID;
+    //dont let a second animation start on the same object
+    //use *.on('update',fn)* instead
+    if(scope.__running){
+        return scope;
+    }
+
+    exports.running += 1;
+    scope.__running = true;
+    scope.__lastTime = scope.__lastTime || now;
+    scope.deltaTime = now - scope.__lastTime;
+    scope.elapsedTime += scope.deltaTime;
+
+    //emit **start** once at the beginning
+    scope.emit('start', scope.deltaTime, 0, scope.frameCount);
+
+
+    var drawFrame = function(){
+        if(scope.__isReadyForUpdate()){
+            scope.update();
+        }
+        if(scope.__running){
+            rAFID = requestAnimationFrame(drawFrame);
+        } else {
+            cancelAnimationFrame(rAFID);
+        }
+    };
+
+    drawFrame();
+
+    return scope;
+}
 
 methods = {
     //EventEmitter Aliases
@@ -173,37 +213,13 @@ methods = {
      */
     start: function(){
         var self = this;
-        var now = Date.now();
-        var rAFID;
-        //dont let a second animation start on the same object
-        //use *.on('update',fn)* instead
-        if(this.__running){
-            return this;
+        if(this.__delay){
+            setTimeout(function(){
+                onStart(self);
+            }, this.__delay);
+        } else {
+            onStart(this);
         }
-
-        exports.running += 1;
-        this.__running = true;
-        this.__lastTime = this.__lastTime || now;
-        this.deltaTime = now - this.__lastTime;
-        this.elapsedTime += this.deltaTime;
-
-        //emit **start** once at the beginning
-        this.emit('start', this.deltaTime, 0, this.frameCount);
-
-
-        var drawFrame = function(){
-            if(self.__isReadyForUpdate()){
-                self.update();
-            }
-            if(self.__running){
-                rAFID = requestAnimationFrame(drawFrame);
-            } else {
-                cancelAnimationFrame(rAFID);
-            }
-        };
-
-        drawFrame();
-
         return this;
     },
 
@@ -231,9 +247,9 @@ methods = {
     update: function(){
         this.frameCount++;
         /** @private */
-        this.__lastTime = this.__lastTime || Date.now();
         var now = Date.now();
-        this.deltaTime = now - this.__lastTime;
+        this.__lastTime = this.__lastTime || now;
+        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/this.__fps : now - this.__lastTime;
         this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
 
@@ -303,6 +319,11 @@ exports.bound = function(options, fn){
 
 
 exports.Animitter = Animitter;
+
+/**
+ * if true, all `Animitter` instances will behave as if `options.fixedDelta = true`
+ */
+exports.globalFixedDelta = false;
 
 //helpful to inherit from when using bundled
 exports.EventEmitter = EventEmitter;

@@ -96,6 +96,12 @@ loop.start();
 
 Animitter inherits from [EventEmitter](https://nodejs.org/api/events.html) which provides methods such as `emit`, `on`, `removeListener` etc… below _(in alphabetical order)_ are the methods that animitter provides directly:
 
+### animitter([options, fn])
+    
++ **options.fps : _Number_**  _defaults to 60_, set a framerate between `>0` and `<=60`.
++ **options.fixedDelta : _Boolean_**  _defaults to false_, if true, `'update'` events will always report `deltaTime` and `elapsedTime` as consistent framerate intervals. Useful in situations such as when you may be recording output at a rate different than real-time.
+
+
 ### animitter().complete()
 stop the loop and mark it as completed and unable to start again.
 
@@ -142,6 +148,8 @@ The `animitter` object comes with the property `running` this counter indicates 
 of animitter instances that are currently animating. This can be helpful for debugging to ensure
 that you are properly stopping all of your animitter instances.
 
+### animitter.globalFixedDelta
+Setting this to true will force all animitter instances to behave as if `options.fixedDelta` was `true`. A helpful application-wide toggle if you begin to record the output not in real-time.
 
 
 ## Tests

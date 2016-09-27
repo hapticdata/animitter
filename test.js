@@ -124,8 +124,6 @@ test('animitter().dispose()', function(t){
 
 });
 
-
-
 test('animitter().update()', function(t){
     t.plan(2);
     //calling update() without calling start()
@@ -384,4 +382,76 @@ test('animitter().setFPS(fps)', function(t){
 
     loop.start();
 });
+
+test('animitter({ fixedDelta: true })', function(t){
+    t.plan(6);
+    var loop = animitter({ fixedDelta: true});
+    testFixedDelta(loop, t, function(){
+        testNonFixedDelta(loop, t);
+    });
+});
+
+test('animitter.globalFixedDelta : Boolean', function(t){
+    animitter.globalFixedDelta = true;
+
+    t.plan(12);
+    testFixedDelta(animitter(), t, function(){
+        testFixedDelta(animitter({ fps: 30 }), t, function(){
+
+            animitter.globalFixedDelta = false;
+            console.log('globalFixedDelta = false');
+            testNonFixedDelta(animitter(), t);
+            testNonFixedDelta(animitter({ fps: 30 }), t);
+
+        });
+    });
+
+});
+
+
+function testFixedDelta(loop, t, callback){
+
+    callback = callback || function(){};
+
+
+    loop.once('update', function(delta, elapsed, frameCount){
+        console.log('frameCount: ' + frameCount);
+        t.equal(delta, 1000/this.getFPS(), 'delta should be fixed');
+        t.equal(elapsed, 1000/this.getFPS() * frameCount);
+    });
+
+    loop.update();
+
+
+    setTimeout(function(){
+        loop.once('update', function(delta, elapsed, frameCount){
+            t.equal(delta, 1000/this.getFPS());
+            t.equal(elapsed, 1000/this.getFPS() * frameCount);
+        });
+
+        loop.update();
+
+        callback();
+
+    }, 200);
+}
+
+function testNonFixedDelta(loop, t, callback){
+    callback = callback || function(){};
+
+    //toggle it at any time
+    loop.fixedDelta = false;
+    loop.update();
+    setTimeout(function(){
+        loop.once('update', function(delta, elapsed, frameCount){
+            t.ok(delta > 1000/this.getFPS() * frameCount, '3rd frame delta should not be fixed');
+            t.ok(elapsed > 1000/this.getFPS() * frameCount);
+
+            callback();
+        });
+
+        loop.update();
+    }, 300);
+}
+
 
