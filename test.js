@@ -411,7 +411,6 @@ test('animitter.globalFixedDelta : Boolean', function(t){
         testFixedDelta(animitter({ fps: 30 }), t, function(){
 
             animitter.globalFixedDelta = false;
-            console.log('globalFixedDelta = false');
             testNonFixedDelta(animitter(), t);
             testNonFixedDelta(animitter({ fps: 30 }), t);
 
@@ -427,7 +426,6 @@ function testFixedDelta(loop, t, callback){
 
 
     loop.once('update', function(delta, elapsed, frameCount){
-        console.log('frameCount: ' + frameCount);
         t.equal(delta, 1000/this.getFPS(), 'delta should be fixed');
         t.equal(elapsed, 1000/this.getFPS() * frameCount);
     });
@@ -492,8 +490,6 @@ test('animitter.setRequestAnimationFrame(request, cancel, fps)', function(t){
     t.equal(animationFrame.cancelAnimationFrame, cancel);
     t.equal(animationFrame.fps, fps);
 
-    console.log('request: ', original.requestAnimationFrame);
-    console.log('cancel: ', original.cancelAnimationFrame);
     animitter.setAnimationFrame(original.requestAnimationFrame, original.cancelAnimationFrame, original.fps);
 
 
