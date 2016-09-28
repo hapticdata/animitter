@@ -455,3 +455,49 @@ function testNonFixedDelta(loop, t, callback){
 }
 
 
+test('animitter.setRequestAnimationFrame(request, cancel, fps)', function(t){
+
+    t.plan(10);
+
+    function missingParams(){
+        //no cancelAnimationFrame
+        animitter.setAnimationFrame(function(){});
+    }
+
+    t.ok(missingParams, /invalid parameters/, 'should throw an error of invalid parameters');
+
+    var request = function(fn){};
+    var cancel = function(){};
+    var fps = 90;
+
+    var original = animitter.getAnimationFrame();
+
+    animitter.setAnimationFrame(request, cancel, fps);
+
+    var animationFrame = animitter.getAnimationFrame();
+
+    t.equal(animationFrame.requestAnimationFrame, request);
+    t.equal(animationFrame.cancelAnimationFrame, cancel);
+    t.equal(animationFrame.fps, fps);
+
+    console.log('request: ', original.requestAnimationFrame);
+    console.log('cancel: ', original.cancelAnimationFrame);
+    animitter.setAnimationFrame(original.requestAnimationFrame, original.cancelAnimationFrame, original.fps);
+
+
+    animationFrame = animitter.getAnimationFrame();
+    t.equal(animationFrame.requestAnimationFrame, original.requestAnimationFrame);
+    t.equal(animationFrame.cancelAnimationFrame, original.cancelAnimationFrame);
+    t.equal(animationFrame.fps, original.fps);
+
+
+    //test that i can setAnimationFrame({ request, cancel, fps })
+    animitter.setAnimationFrame({ requestAnimationFrame: request, cancelAnimationFrame: cancel, fps: fps });
+
+    animationFrame = animitter.getAnimationFrame();
+
+    t.equal(animationFrame.requestAnimationFrame, request);
+    t.equal(animationFrame.cancelAnimationFrame, cancel);
+    t.equal(animationFrame.fps, fps);
+});
+

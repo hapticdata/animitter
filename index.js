@@ -1,8 +1,8 @@
 var EventEmitter          = require('events').EventEmitter,
     inherits              = require('inherits'),
-    requestAnimationFrame = require('raf'),
-    cancelAnimationFrame  = require('raf').cancel,
+    raf                   = require('raf'),
     methods;
+
 
 
 function returnTrue(){ return true; }
@@ -11,10 +11,10 @@ function returnTrue(){ return true; }
 function makeThrottle(fps){
     var delay = 1000/fps;
     var lastTime = Date.now();
-    var half = Math.ceil(1000 / 60) / 2;
+    var half = Math.ceil(1000 / maxFPS) / 2;
 
 
-    if( fps >= 60 ){
+    if( !(fps>0) || fps >= maxFPS ){
         return returnTrue;
     }
 
@@ -52,7 +52,7 @@ function Animitter( opts ){
     /** @private */
     this.__completed = false;
 
-    this.setFPS(opts.fps || 60);
+    this.setFPS(opts.fps || Infinity);
 }
 
 inherits(Animitter, EventEmitter);
@@ -317,6 +317,59 @@ exports.bound = function(options, fn){
 };
 
 
+/**
+ * the `requestAnimationFrame` to use, defaults to 'raf'
+ * for `window.requestAnimationFrame` or `setTimeout` polyfill
+ * available for override for use-cases such as `VRDisplay#requestAnimationFrame`
+ * @type {Function}
+ */
+var requestAnimationFrame = raf;
+
+/**
+ * if changing `animitter.requestAnimationFrame` you should also provide a matching
+ * `cancelAnimationFrame`
+ * @type {Function}
+ */
+var cancelAnimationFrame = raf.cancel;
+
+
+/**
+ * the maximum framerate the set `requestAnimationFrame` is capable of, used for throttling
+ * @type {Number}
+ */
+var maxFPS = 60;
+
+
+
+/**
+ * set animitter to use a different `requestAnimationFrame` and `cancelAnimationFrame` function
+ * than the default. Example uses would be to use `VRDisplay#requestAnimationFrame` or using `setTimeout` instead
+ * @param {Function} request the `requestAnimationFrame` equivalent function
+ * @param {Function} cancel the `cancelAnimationFrame` equivalent function
+ * @param {Number} [fps=60] the maximum frames per second this `requestAnimationFrame` is capable of
+ */
+exports.setAnimationFrame = function(request, cancel, fps){
+    if(arguments.length === 1 && typeof request === 'object'){
+        fps = request.fps;
+        cancel = request.cancelAnimationFrame;
+        request = request.requestAnimationFrame;
+    }
+    if(typeof request !== 'function' || typeof cancel !== 'function'){
+        throw new Error('invalid parameters, provide a `requestAnimationFrame` as well as a `cancelAnimationFrame` function');
+    }
+
+    requestAnimationFrame = request;
+    cancelAnimationFrame = cancel;
+    maxFPS = fps || 60;
+};
+
+exports.getAnimationFrame = function(){
+    return {
+        requestAnimationFrame: requestAnimationFrame,
+        cancelAnimationFrame: cancelAnimationFrame,
+        fps: maxFPS
+    };
+};
 
 exports.Animitter = Animitter;
 

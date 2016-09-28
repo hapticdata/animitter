@@ -152,6 +152,27 @@ that you are properly stopping all of your animitter instances.
 Setting this to true will force all animitter instances to behave as if `options.fixedDelta` was `true`. A helpful application-wide toggle if you begin to record the output not in real-time.
 
 
+### animitter.setAnimationFrame(request, cancel, [fps])
+Set a custom `requestAnimationFrame`, `cancelAnimationFrame` and its running _frames per second_. You can use this to force using `setTimeout` or to use [WebVR](https://w3c.github.io/webvr)'s `requestAnimationFrame` for faster updates.
+Below is an example of using `animitter.setAnimationFrame` with WebVR:
+
+```js
+navigator.getVRDisplays().then((displays)=>{
+    if(displays.length > 0){
+        var hmd = displays[0];
+        animitter.setAnimationFrame(hmd.requestAnimationFrame, hmd.cancelAnimationFrame, 90);
+    }
+});
+```
+
+### animitter.getAnimationFrame()
+Get an object with the current `requestAnimationFrame`, `cancelAnimationFrame`, and `fps`.
+
+Example:
+```js
+let = { requestAnimationFrame, cancelAnimationFrame, fps } = animitter.getAnimationFrame();
+```
+
 ## Tests
 
 Animitter comes with TAP tests. These tests are compatible in node and in browser. 
