@@ -1,13 +1,13 @@
-// Animitter 1.0.0
-// Build: 2015-9-7
+// Animitter 1.2.0
+// Build: 2016-9-28
 // by Kyle Phillips - http://haptic-data.com
 // Available under MIT License
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.animitter = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 var EventEmitter          = require('events').EventEmitter,
     inherits              = require('inherits'),
-    requestAnimationFrame = require('raf'),
-    cancelAnimationFrame  = require('raf').cancel,
+    raf                   = require('raf'),
     methods;
+
 
 
 function returnTrue(){ return true; }
@@ -16,10 +16,10 @@ function returnTrue(){ return true; }
 function makeThrottle(fps){
     var delay = 1000/fps;
     var lastTime = Date.now();
-    var half = Math.ceil(1000 / 60) / 2;
+    var half = Math.ceil(1000 / maxFPS) / 2;
 
 
-    if( fps >= 60 ){
+    if( !(fps>0) || fps >= maxFPS ){
         return returnTrue;
     }
 
@@ -40,6 +40,11 @@ function makeThrottle(fps){
 function Animitter( opts ){
     opts = opts || {};
 
+    this.__delay = opts.delay || 0;
+
+    /** @expose */
+    this.fixedDelta = !!opts.fixedDelta;
+
     /** @expose */
     this.frameCount = 0;
     /** @expose */
@@ -52,10 +57,45 @@ function Animitter( opts ){
     /** @private */
     this.__completed = false;
 
-    this.setFPS(opts.fps || 60);
+    this.setFPS(opts.fps || Infinity);
 }
 
 inherits(Animitter, EventEmitter);
+
+function onStart(scope){
+    var now = Date.now();
+    var rAFID;
+    //dont let a second animation start on the same object
+    //use *.on('update',fn)* instead
+    if(scope.__running){
+        return scope;
+    }
+
+    exports.running += 1;
+    scope.__running = true;
+    scope.__lastTime = scope.__lastTime || now;
+    scope.deltaTime = now - scope.__lastTime;
+    scope.elapsedTime += scope.deltaTime;
+
+    //emit **start** once at the beginning
+    scope.emit('start', scope.deltaTime, 0, scope.frameCount);
+
+
+    var drawFrame = function(){
+        if(scope.__isReadyForUpdate()){
+            scope.update();
+        }
+        if(scope.__running){
+            rAFID = requestAnimationFrame(drawFrame);
+        } else {
+            cancelAnimationFrame(rAFID);
+        }
+    };
+
+    drawFrame();
+
+    return scope;
+}
 
 methods = {
     //EventEmitter Aliases
@@ -64,7 +104,7 @@ methods = {
 
     /**
      * stops the animation and marks it as completed
-     * @event Animitter#complete
+     * @emit Animitter#complete
      * @returns {Animitter}
      */
     complete: function(){
@@ -76,7 +116,7 @@ methods = {
 
     /**
      * stops the animation and removes all listeners
-     * @event Animitter#stop
+     * @emit Animitter#stop
      * @returns {Animitter}
      */
     dispose: function(){
@@ -145,12 +185,13 @@ methods = {
      * reset the animation loop, marks as incomplete,
      * leaves listeners intact
      *
-     * @event Animitter#reset
+     * @emit Animitter#reset
      * @return {Animitter}
      */
     reset: function(){
         this.stop();
         this.__completed = false;
+        this.__lastTime = 0;
         this.deltaTime = 0;
         this.elapsedTime = 0;
         this.frameCount = 0;
@@ -173,49 +214,25 @@ methods = {
 
     /**
      * start an animation loop
-     * @event Animitter#start
+     * @emit Animitter#start
      * @return {Animitter}
      */
     start: function(){
         var self = this;
-        var now = Date.now();
-        var rAFID;
-        //dont let a second animation start on the same object
-        //use *.on('update',fn)* instead
-        if(this.__running){
-            return this;
+        if(this.__delay){
+            setTimeout(function(){
+                onStart(self);
+            }, this.__delay);
+        } else {
+            onStart(this);
         }
-
-        exports.running += 1;
-        this.__running = true;
-        this.__lastTime = this.__lastTime || now;
-        this.deltaTime = now - this.__lastTime;
-        this.elapsedTime += this.deltaTime;
-
-        //emit **start** once at the beginning
-        this.emit('start', this.deltaTime, 0, this.frameCount);
-
-
-        var drawFrame = function(){
-            if(self.__isReadyForUpdate()){
-                self.update();
-            }
-            if(self.__running){
-                rAFID = requestAnimationFrame(drawFrame);
-            } else {
-                cancelAnimationFrame(rAFID);
-            }
-        };
-
-        drawFrame();
-
         return this;
     },
 
     /**
      * stops the animation loop, does not mark as completed
      *
-     * @event Animitter#stop
+     * @emit Animitter#stop
      * @return {Animitter}
      */
     stop: function(){
@@ -230,15 +247,15 @@ methods = {
     /**
      * update the animation loop once
      *
-     * @event Animitter#update
+     * @emit Animitter#update
      * @return {Animitter}
      */
     update: function(){
         this.frameCount++;
         /** @private */
-        this.__lastTime = this.__lastTime || Date.now();
         var now = Date.now();
-        this.deltaTime = now - this.__lastTime;
+        this.__lastTime = this.__lastTime || now;
+        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/this.__fps : now - this.__lastTime;
         this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
 
@@ -264,7 +281,7 @@ for(var method in methods){
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-module.exports = exports = function createAnimitter(options, fn){
+function createAnimitter(options, fn){
 
     if( arguments.length === 1 && typeof options === 'function'){
         fn = options;
@@ -278,23 +295,123 @@ module.exports = exports = function createAnimitter(options, fn){
     }
 
     return _instance;
+}
+
+module.exports = exports = createAnimitter;
+
+/**
+ * create an animitter instance,
+ * where the scope is bound in all functions
+ * @param {Object} [options]
+ * @param {Number} [options.fps]
+ * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
+ * @returns {Animitter}
+ */
+exports.bound = function(options, fn){
+
+    var loop = createAnimitter(options, fn),
+        functionKeys = functions(Animitter.prototype),
+        hasBind = !!Function.prototype.bind,
+        fnKey;
+
+    for(var i=0; i<functionKeys.length; i++){
+        fnKey = functionKeys[i];
+        loop[fnKey] = hasBind ? loop[fnKey].bind(loop) : bindPolyfill(loop[fnKey], loop);
+    }
+
+    return loop;
 };
 
 
+/**
+ * the `requestAnimationFrame` to use, defaults to 'raf'
+ * for `window.requestAnimationFrame` or `setTimeout` polyfill
+ * available for override for use-cases such as `VRDisplay#requestAnimationFrame`
+ * @type {Function}
+ */
+var requestAnimationFrame = raf;
+
+/**
+ * if changing `animitter.requestAnimationFrame` you should also provide a matching
+ * `cancelAnimationFrame`
+ * @type {Function}
+ */
+var cancelAnimationFrame = raf.cancel;
+
+
+/**
+ * the maximum framerate the set `requestAnimationFrame` is capable of, used for throttling
+ * @type {Number}
+ */
+var maxFPS = 60;
+
+
+
+/**
+ * set animitter to use a different `requestAnimationFrame` and `cancelAnimationFrame` function
+ * than the default. Example uses would be to use `VRDisplay#requestAnimationFrame` or using `setTimeout` instead
+ * @param {Function} request the `requestAnimationFrame` equivalent function
+ * @param {Function} cancel the `cancelAnimationFrame` equivalent function
+ * @param {Number} [fps=60] the maximum frames per second this `requestAnimationFrame` is capable of
+ */
+exports.setAnimationFrame = function(request, cancel, fps){
+    if(arguments.length === 1 && typeof request === 'object'){
+        fps = request.fps;
+        cancel = request.cancelAnimationFrame;
+        request = request.requestAnimationFrame;
+    }
+    if(typeof request !== 'function' || typeof cancel !== 'function'){
+        throw new Error('invalid parameters, provide a `requestAnimationFrame` as well as a `cancelAnimationFrame` function');
+    }
+
+    requestAnimationFrame = request;
+    cancelAnimationFrame = cancel;
+    maxFPS = fps || 60;
+};
+
+exports.getAnimationFrame = function(){
+    return {
+        requestAnimationFrame: requestAnimationFrame,
+        cancelAnimationFrame: cancelAnimationFrame,
+        fps: maxFPS
+    };
+};
 
 exports.Animitter = Animitter;
+
+/**
+ * if true, all `Animitter` instances will behave as if `options.fixedDelta = true`
+ */
+exports.globalFixedDelta = false;
 
 //helpful to inherit from when using bundled
 exports.EventEmitter = EventEmitter;
 //keep a global counter of all loops running, helpful to watch in dev tools
 exports.running = 0;
 
+function bindPolyfill(fn, scope){
+    return function(){
+        return fn.apply(scope, arguments);
+    };
+}
+
+function functions(obj){
+    var keys = Object.keys(obj);
+    var arr = [];
+    for(var i=0; i<keys.length; i++){
+        if(typeof obj[keys[i]] === 'function'){
+            arr.push(keys[i]);
+        }
+    }
+    return arr;
+}
+
+
 
 //polyfill Date.now for real-old browsers
 Date.now = Date.now || function now() {
     return new Date().getTime();
 };
-
 
 },{"events":2,"inherits":4,"raf":5}],2:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
