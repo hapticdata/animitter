@@ -383,6 +383,18 @@ test('animitter().setFPS(fps)', function(t){
     loop.start();
 });
 
+test('animitter.bound()', function(t){
+    t.plan(1);
+
+    var loop = animitter.bound();
+    loop.on('update', function(){
+        t.ok(this instanceof animitter.Animitter);
+    });
+
+    setTimeout(loop.update, 10);
+
+});
+
 test('animitter({ fixedDelta: true })', function(t){
     t.plan(6);
     var loop = animitter({ fixedDelta: true});

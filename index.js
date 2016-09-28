@@ -99,7 +99,7 @@ methods = {
 
     /**
      * stops the animation and marks it as completed
-     * @event Animitter#complete
+     * @emit Animitter#complete
      * @returns {Animitter}
      */
     complete: function(){
@@ -111,7 +111,7 @@ methods = {
 
     /**
      * stops the animation and removes all listeners
-     * @event Animitter#stop
+     * @emit Animitter#stop
      * @returns {Animitter}
      */
     dispose: function(){
@@ -180,12 +180,13 @@ methods = {
      * reset the animation loop, marks as incomplete,
      * leaves listeners intact
      *
-     * @event Animitter#reset
+     * @emit Animitter#reset
      * @return {Animitter}
      */
     reset: function(){
         this.stop();
         this.__completed = false;
+        this.__lastTime = 0;
         this.deltaTime = 0;
         this.elapsedTime = 0;
         this.frameCount = 0;
@@ -208,7 +209,7 @@ methods = {
 
     /**
      * start an animation loop
-     * @event Animitter#start
+     * @emit Animitter#start
      * @return {Animitter}
      */
     start: function(){
@@ -226,7 +227,7 @@ methods = {
     /**
      * stops the animation loop, does not mark as completed
      *
-     * @event Animitter#stop
+     * @emit Animitter#stop
      * @return {Animitter}
      */
     stop: function(){
@@ -241,7 +242,7 @@ methods = {
     /**
      * update the animation loop once
      *
-     * @event Animitter#update
+     * @emit Animitter#update
      * @return {Animitter}
      */
     update: function(){
@@ -304,7 +305,7 @@ module.exports = exports = createAnimitter;
 exports.bound = function(options, fn){
 
     var loop = createAnimitter(options, fn),
-        functionKeys = functions(loop),
+        functionKeys = functions(Animitter.prototype),
         hasBind = !!Function.prototype.bind,
         fnKey;
 
@@ -406,4 +407,3 @@ function functions(obj){
 Date.now = Date.now || function now() {
     return new Date().getTime();
 };
-
