@@ -98,8 +98,11 @@ Animitter inherits from [EventEmitter](https://nodejs.org/api/events.html) which
 
 ### animitter([options, fn])
     
-+ **options.fps : _Number_**  _defaults to 60_, set a framerate between `>0` and `<=60`.
++ **options.fps : _Number_**  _defaults to Infinity_, set a framerate to throttle the loop, otherwise it will run as fast as possible, _60fps on desktop, 60-100fps on VRDisplay_
++ **options.requestAnimationFrameObject : _Object_** _defaults to global object_, allows providing in an object such as a [VRDisplay](https://w3c.github.io/webvr/#interface-vrdisplay) to use its `requestAnimationFrame` related methods.
++ **options.delay : _Number_** _defaults to 0_, set an optional delay in milliseconds to wait before invoking the first update on the loop after calling `start()`
 + **options.fixedDelta : _Boolean_**  _defaults to false_, if true, `'update'` events will always report `deltaTime` and `elapsedTime` as consistent framerate intervals. Useful in situations such as when you may be recording output at a rate different than real-time.
+
 
 
 ### animitter().complete()
@@ -110,6 +113,9 @@ stop the loop and remove all listeners.
 
 ### animitter().getFPS()
 return the framerate, 0-60.
+
+### animitter().getRequestAnimationFrameObject()
+returns the object that is providing `requestAnimationFrame` to this instance
 
 ### animitter().getDeltaTime()
 return the time between the last two frames in milliseconds
@@ -132,6 +138,24 @@ stops the loop and resets its times, frameCount and whether it was completed, le
 ### animitter().setFPS( fps )
 throttle the loop to a preferred framerate between 0-60.
 
+### animitter().setRequestAnimationFrameObject( object )
+allows you to use `requestAnimationFrame` from a custom object, such as a VRDisplay.
+Below is an example of using `animitter().setRequestAnimationFrameObject` with WebVR:
+
+```js
+var loop = animitter().start();
+navigator.getVRDisplays().then((displays)=>{
+    if(displays.length > 0){
+        var vrDisplay = displays[0];
+        loop.setRequestAnimationFrameObject(vrDisplay)
+        loop.on('update', function(){
+            //now you can safely call VRDisplay#submitFrame()
+            vrDisplay.submitFrame();
+        });
+    }
+});
+```
+
 ### animitter().start()
 starts repeating the update loop.
 
@@ -151,27 +175,6 @@ that you are properly stopping all of your animitter instances.
 ### animitter.globalFixedDelta
 Setting this to true will force all animitter instances to behave as if `options.fixedDelta` was `true`. A helpful application-wide toggle if you begin to record the output not in real-time.
 
-
-### animitter.setAnimationFrame(request, cancel, [fps])
-Set a custom `requestAnimationFrame`, `cancelAnimationFrame` and its running _frames per second_. You can use this to force using `setTimeout` or to use [WebVR](https://w3c.github.io/webvr)'s `requestAnimationFrame` for faster updates.
-Below is an example of using `animitter.setAnimationFrame` with WebVR:
-
-```js
-navigator.getVRDisplays().then((displays)=>{
-    if(displays.length > 0){
-        var hmd = displays[0];
-        animitter.setAnimationFrame(hmd.requestAnimationFrame, hmd.cancelAnimationFrame, 90);
-    }
-});
-```
-
-### animitter.getAnimationFrame()
-Get an object with the current `requestAnimationFrame`, `cancelAnimationFrame`, and `fps`.
-
-Example:
-```js
-let = { requestAnimationFrame, cancelAnimationFrame, fps } = animitter.getAnimationFrame();
-```
 
 ## Tests
 

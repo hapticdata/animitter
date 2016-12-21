@@ -465,47 +465,51 @@ function testNonFixedDelta(loop, t, callback){
 }
 
 
-test('animitter.setRequestAnimationFrame(request, cancel, fps)', function(t){
+test('animitter().setRequestAnimationFrameObject(object)', function(t){
 
-    t.plan(10);
+    t.plan(7);
 
     function missingParams(){
         //no cancelAnimationFrame
-        animitter.setAnimationFrame(function(){});
+        animitter().setRequestAnimationFrameObject({});
     }
 
-    t.ok(missingParams, /invalid parameters/, 'should throw an error of invalid parameters');
+    t.ok(missingParams, /Invalid object/, 'should throw an error of invalid parameters');
 
-    var request = function(fn){};
-    var cancel = function(){};
-    var fps = 90;
+    var loop = animitter();
+    var original = loop.getRequestAnimationFrameObject();
 
-    var original = animitter.getAnimationFrame();
 
-    animitter.setAnimationFrame(request, cancel, fps);
+    var mock = {
+        requestAnimationFrame: request,
+        cancelAnimationFrame: cancel
+    };
 
-    var animationFrame = animitter.getAnimationFrame();
+    function request(){}
+    function cancel(){}
+
+    loop.setRequestAnimationFrameObject(mock);
+
+    var animationFrame = loop.getRequestAnimationFrameObject();
 
     t.equal(animationFrame.requestAnimationFrame, request);
     t.equal(animationFrame.cancelAnimationFrame, cancel);
-    t.equal(animationFrame.fps, fps);
 
-    animitter.setAnimationFrame(original.requestAnimationFrame, original.cancelAnimationFrame, original.fps);
+    loop.setRequestAnimationFrameObject(original);
 
 
-    animationFrame = animitter.getAnimationFrame();
+    animationFrame = loop.getRequestAnimationFrameObject();
     t.equal(animationFrame.requestAnimationFrame, original.requestAnimationFrame);
     t.equal(animationFrame.cancelAnimationFrame, original.cancelAnimationFrame);
-    t.equal(animationFrame.fps, original.fps);
 
 
-    //test that i can setAnimationFrame({ request, cancel, fps })
-    animitter.setAnimationFrame({ requestAnimationFrame: request, cancelAnimationFrame: cancel, fps: fps });
+    //test that a newly created loop receives the default requestAnimationFrame
+    loop.setRequestAnimationFrameObject(mock);
+    var loop2 = animitter();
+    t.notEqual(loop.getRequestAnimationFrameObject(), loop2.getRequestAnimationFrameObject());
 
-    animationFrame = animitter.getAnimationFrame();
+    //test that this can be set from the options argument
+    t.equal(animitter({ requestAnimationFrameObject: mock }).getRequestAnimationFrameObject(), mock);
 
-    t.equal(animationFrame.requestAnimationFrame, request);
-    t.equal(animationFrame.cancelAnimationFrame, cancel);
-    t.equal(animationFrame.fps, fps);
 });
 
