@@ -1,5 +1,5 @@
-// Animitter 1.2.0
-// Build: 2016-9-28
+// Animitter 2.0.0
+// Build: 2016-12-21
 // by Kyle Phillips - http://haptic-data.com
 // Available under MIT License
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.animitter = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -9,6 +9,11 @@ var EventEmitter          = require('events').EventEmitter,
     methods;
 
 
+//the same as off window unless polyfilled or in node
+var defaultRAFObject = {
+    requestAnimationFrame: raf,
+    cancelAnimationFrame: raf.cancel
+};
 
 function returnTrue(){ return true; }
 
@@ -16,12 +21,15 @@ function returnTrue(){ return true; }
 function makeThrottle(fps){
     var delay = 1000/fps;
     var lastTime = Date.now();
-    var half = Math.ceil(1000 / maxFPS) / 2;
 
 
-    if( !(fps>0) || fps >= maxFPS ){
+    if( fps<=0 || fps === Infinity ){
         return returnTrue;
     }
+
+    //if an fps throttle has been set then we'll assume
+    //it natively runs at 60fps,
+    var half = Math.ceil(1000 / 60) / 2;
 
     return function(){
         //if a custom fps is requested
@@ -37,6 +45,16 @@ function makeThrottle(fps){
 }
 
 
+/**
+ * Animitter provides event-based loops for the browser and node,
+ * using `requestAnimationFrame`
+ * @param {Object} [opts]
+ * @param {Number} [opts.fps=Infinity] the framerate requested, defaults to as fast as it can (60fps on window)
+ * @param {Number} [opts.delay=0] milliseconds delay between invoking `start` and initializing the loop
+ * @param {Object} [opts.requestAnimationFrameObject=global] the object on which to find `requestAnimationFrame` and `cancelAnimationFrame` methods
+ * @param {Boolean} [opts.fixedDelta=false] if true, timestamps will pretend to be executed at fixed intervals always
+ * @constructor
+ */
 function Animitter( opts ){
     opts = opts || {};
 
@@ -58,6 +76,7 @@ function Animitter( opts ){
     this.__completed = false;
 
     this.setFPS(opts.fps || Infinity);
+    this.setRequestAnimationFrameObject(opts.requestAnimationFrameObject || defaultRAFObject);
 }
 
 inherits(Animitter, EventEmitter);
@@ -80,19 +99,29 @@ function onStart(scope){
     //emit **start** once at the beginning
     scope.emit('start', scope.deltaTime, 0, scope.frameCount);
 
+    var lastRAFObject = scope.requestAnimationFrameObject;
 
     var drawFrame = function(){
+        if(lastRAFObject !== scope.requestAnimationFrameObject){
+            //if the requestAnimationFrameObject switched in-between,
+            //then re-request with the new one to ensure proper update execution context
+            //i.e. VRDisplay#submitFrame() may only be requested through VRDisplay#requestAnimationFrame(drawFrame)
+            lastRAFObject = scope.requestAnimationFrameObject;
+            scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
+            return;
+        }
         if(scope.__isReadyForUpdate()){
             scope.update();
         }
         if(scope.__running){
-            rAFID = requestAnimationFrame(drawFrame);
+            rAFID = scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
         } else {
-            cancelAnimationFrame(rAFID);
+            scope.requestAnimationFrameObject.cancelAnimationFrame(rAFID);
+            scope.emit('stop-2');
         }
     };
 
-    drawFrame();
+    scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
 
     return scope;
 }
@@ -163,6 +192,16 @@ methods = {
         return this.frameCount;
     },
 
+
+    /**
+     * get the object providing `requestAnimationFrame`
+     * and `cancelAnimationFrame` methods
+     * @return {Object}
+     */
+    getRequestAnimationFrameObject: function(){
+        return this.requestAnimationFrameObject;
+    },
+
     /**
      * is the animation loop active
      *
@@ -209,6 +248,20 @@ methods = {
     setFPS: function(fps){
         this.__fps = fps;
         this.__isReadyForUpdate = makeThrottle(fps);
+        return this;
+    },
+
+    /**
+     * set the object that will provide `requestAnimationFrame`
+     * and `cancelAnimationFrame` methods to this instance
+     * @param {Object} object
+     * @return {Animitter}
+     */
+    setRequestAnimationFrameObject: function(object){
+        if(typeof object.requestAnimationFrame !== 'function' || typeof object.cancelAnimationFrame !== 'function'){
+            throw new Error("Invalid object provide to `setRequestAnimationFrameObject`");
+        }
+        this.requestAnimationFrameObject = object;
         return this;
     },
 
@@ -262,9 +315,6 @@ methods = {
         this.emit('update', this.deltaTime, this.elapsedTime, this.frameCount);
         return this;
     }
-
-
-
 };
 
 
@@ -316,66 +366,12 @@ exports.bound = function(options, fn){
 
     for(var i=0; i<functionKeys.length; i++){
         fnKey = functionKeys[i];
-        loop[fnKey] = hasBind ? loop[fnKey].bind(loop) : bindPolyfill(loop[fnKey], loop);
+        loop[fnKey] = hasBind ? loop[fnKey].bind(loop) : bind(loop[fnKey], loop);
     }
 
     return loop;
 };
 
-
-/**
- * the `requestAnimationFrame` to use, defaults to 'raf'
- * for `window.requestAnimationFrame` or `setTimeout` polyfill
- * available for override for use-cases such as `VRDisplay#requestAnimationFrame`
- * @type {Function}
- */
-var requestAnimationFrame = raf;
-
-/**
- * if changing `animitter.requestAnimationFrame` you should also provide a matching
- * `cancelAnimationFrame`
- * @type {Function}
- */
-var cancelAnimationFrame = raf.cancel;
-
-
-/**
- * the maximum framerate the set `requestAnimationFrame` is capable of, used for throttling
- * @type {Number}
- */
-var maxFPS = 60;
-
-
-
-/**
- * set animitter to use a different `requestAnimationFrame` and `cancelAnimationFrame` function
- * than the default. Example uses would be to use `VRDisplay#requestAnimationFrame` or using `setTimeout` instead
- * @param {Function} request the `requestAnimationFrame` equivalent function
- * @param {Function} cancel the `cancelAnimationFrame` equivalent function
- * @param {Number} [fps=60] the maximum frames per second this `requestAnimationFrame` is capable of
- */
-exports.setAnimationFrame = function(request, cancel, fps){
-    if(arguments.length === 1 && typeof request === 'object'){
-        fps = request.fps;
-        cancel = request.cancelAnimationFrame;
-        request = request.requestAnimationFrame;
-    }
-    if(typeof request !== 'function' || typeof cancel !== 'function'){
-        throw new Error('invalid parameters, provide a `requestAnimationFrame` as well as a `cancelAnimationFrame` function');
-    }
-
-    requestAnimationFrame = request;
-    cancelAnimationFrame = cancel;
-    maxFPS = fps || 60;
-};
-
-exports.getAnimationFrame = function(){
-    return {
-        requestAnimationFrame: requestAnimationFrame,
-        cancelAnimationFrame: cancelAnimationFrame,
-        fps: maxFPS
-    };
-};
 
 exports.Animitter = Animitter;
 
@@ -389,7 +385,10 @@ exports.EventEmitter = EventEmitter;
 //keep a global counter of all loops running, helpful to watch in dev tools
 exports.running = 0;
 
-function bindPolyfill(fn, scope){
+function bind(fn, scope){
+    if(typeof fn.bind === 'function'){
+        return fn.bind(scope);
+    }
     return function(){
         return fn.apply(scope, arguments);
     };
