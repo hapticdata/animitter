@@ -87,9 +87,8 @@ function onStart(scope){
 
     exports.running += 1;
     scope.__running = true;
-    scope.__lastTime = scope.__lastTime || now;
-    scope.deltaTime = now - scope.__lastTime;
-    scope.elapsedTime += scope.deltaTime;
+    scope.__lastTime = now;
+    scope.deltaTime = 0;
 
     //emit **start** once at the beginning
     scope.emit('start', scope.deltaTime, 0, scope.frameCount);
@@ -112,7 +111,6 @@ function onStart(scope){
             rAFID = scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
         } else {
             scope.requestAnimationFrameObject.cancelAnimationFrame(rAFID);
-            scope.emit('stop-2');
         }
     };
 
@@ -169,14 +167,26 @@ methods = {
     },
 
     /**
-     * get the instances frames per second
+     * get the instances frames per second as calculated by the last delta
      *
      * @return {Number}
      */
     getFPS: function(){
-        return this.__fps;
+        return this.deltaTime > 0 ? 1000 / this.deltaTime : 0;
+        if(this.deltaTime){
+            return 1000 / this.deltaTime;
+        }
     },
 
+    /**
+     * get the explicit FPS limit set via `Animitter#setFPS(fps)` or
+     * via the initial `options.fps` property
+     *
+     * @returns {Number} either as set or Infinity
+     */
+    getFPSLimit: function(){
+        return this.__fps;
+    },
 
     /**
      * get the number of frames that have occurred
@@ -303,7 +313,7 @@ methods = {
         /** @private */
         var now = Date.now();
         this.__lastTime = this.__lastTime || now;
-        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/this.__fps : now - this.__lastTime;
+        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/Math.min(60, this.__fps) : now - this.__lastTime;
         this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
 
@@ -322,7 +332,6 @@ for(var method in methods){
 /**
  * create an animitter instance,
  * @param {Object} [options]
- * @param {Number} [options.fps]
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
@@ -348,7 +357,6 @@ module.exports = exports = createAnimitter;
  * create an animitter instance,
  * where the scope is bound in all functions
  * @param {Object} [options]
- * @param {Number} [options.fps]
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */

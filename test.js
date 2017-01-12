@@ -140,7 +140,7 @@ test('animitter({ fps: fps })', function(t){
 
     var fps = 15;
     var loop = animitter({ fps: fps });
-    t.equal(loop.getFPS(), fps);
+    t.equal(loop.getFPSLimit(), fps);
 });
 
 
@@ -226,7 +226,7 @@ test('animitter().getElapsedTime() after reset', function(t){
 test('animitter().getElapsedTime() should track total time played', function(t){
     t.plan(1);
     var delay = 1000;
-    var thresh = 32;
+    var thresh = 12;
 
     var loop = animitter();
     loop.on('start', function(){
@@ -236,6 +236,34 @@ test('animitter().getElapsedTime() should track total time played', function(t){
         }, delay);
     });
     loop.start();
+});
+
+test('animitter().getElapsedTime() should not count time while stopped', function(t){
+
+    t.plan(2);
+
+    var loop = animitter.bound();
+
+    loop.on('update', function waitToPause(deltaTime, elapsedTime){
+
+        if(elapsedTime > 120){
+            loop.stop();
+            loop.off('update', waitToPause);
+
+            loop.once('update', function(deltaTine, elapsedTime){
+               console.log('updated again ' + deltaTime + ' elapsed: ' + elapsedTime);
+               t.ok(deltaTime <  100);
+               t.ok(elapsedTime < 300);
+               loop.stop();
+            });
+
+            setTimeout(loop.start, 200);
+        }
+
+    });
+
+    loop.start();
+
 });
 
 test('animitter().getElapsedTime() should stop counting forward when stopped', function(t){
@@ -383,6 +411,40 @@ test('animitter().setFPS(fps)', function(t){
     loop.start();
 });
 
+test('animitter().getFPS() should return the calculated framerate from the last deltaTime', function(t){
+    var fps = 30;
+
+    t.plan(4);
+
+    var loop = animitter({ fps: fps }, function(deltaTime, elapsedTime, frameCount){
+        var currentFPS = loop.getFPS();
+        console.log('currentFPS = ' + currentFPS)
+        t.equals(currentFPS, 1000 / deltaTime, 'should be the fps as calculated by the last deltaTime');
+        if(frameCount === 2){
+            this.stop();
+            //make sure it doesnt change just sitting here waiting
+            setTimeout(function(){
+                t.equals(loop.getFPS(), currentFPS, 'should not change while stopped');
+                loop.dispose();
+            }, 120);
+        }
+    });
+
+    t.equal(loop.getFPS(), 0, 'should equal 0 as the loop hasnt started yet');
+
+    loop.start();
+});
+
+test('animitter().getFPSLimit() should return what was set in setFPS(fps)', function(t){
+    t.plan(3);
+    var loop = animitter();
+    t.equals(loop.getFPSLimit(), Infinity, 'default value should be Inifnity');
+    var fps = 30;
+    loop.setFPS(fps);
+    t.equals(loop.getFPSLimit(), fps, 'should equal set value');
+    t.equals(animitter({ fps: fps }).getFPSLimit(), fps, 'should equal value from options object');
+});
+
 test('animitter.bound()', function(t){
     t.plan(1);
 
@@ -426,8 +488,8 @@ function testFixedDelta(loop, t, callback){
 
 
     loop.once('update', function(delta, elapsed, frameCount){
-        t.equal(delta, 1000/this.getFPS(), 'delta should be fixed');
-        t.equal(elapsed, 1000/this.getFPS() * frameCount);
+        t.equal(delta, 1000/Math.min(60, Math.min(60, this.getFPSLimit())), 'delta should be fixed');
+        t.equal(elapsed, 1000/Math.min(60, Math.min(60, this.getFPSLimit())) * frameCount);
     });
 
     loop.update();
@@ -435,8 +497,8 @@ function testFixedDelta(loop, t, callback){
 
     setTimeout(function(){
         loop.once('update', function(delta, elapsed, frameCount){
-            t.equal(delta, 1000/this.getFPS());
-            t.equal(elapsed, 1000/this.getFPS() * frameCount);
+            t.equal(delta, 1000/Math.min(60, this.getFPSLimit()));
+            t.equal(elapsed, 1000/Math.min(60, this.getFPSLimit()) * frameCount);
         });
 
         loop.update();
@@ -454,8 +516,8 @@ function testNonFixedDelta(loop, t, callback){
     loop.update();
     setTimeout(function(){
         loop.once('update', function(delta, elapsed, frameCount){
-            t.ok(delta > 1000/this.getFPS() * frameCount, '3rd frame delta should not be fixed');
-            t.ok(elapsed > 1000/this.getFPS() * frameCount);
+            t.ok(delta > 1000/Math.min(60, this.getFPSLimit()) * frameCount, '3rd frame delta should not be fixed');
+            t.ok(elapsed > 1000/Math.min(60, this.getFPSLimit()) * frameCount);
 
             callback();
         });
