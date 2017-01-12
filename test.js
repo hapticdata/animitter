@@ -244,14 +244,13 @@ test('animitter().getElapsedTime() should not count time while stopped', functio
 
     var loop = animitter.bound();
 
-    loop.on('update', function waitToPause(deltaTime, elapsedTime){
+    loop.on('update', function waitToPause(dt, et){
 
-        if(elapsedTime > 120){
+        if(et > 120){
             loop.stop();
             loop.off('update', waitToPause);
 
-            loop.once('update', function(deltaTine, elapsedTime){
-               console.log('updated again ' + deltaTime + ' elapsed: ' + elapsedTime);
+            loop.once('update', function(deltaTime, elapsedTime){
                t.ok(deltaTime <  100);
                t.ok(elapsedTime < 300);
                loop.stop();
