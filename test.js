@@ -226,7 +226,7 @@ test('animitter().getElapsedTime() after reset', function(t){
 test('animitter().getElapsedTime() should track total time played', function(t){
     t.plan(1);
     var delay = 1000;
-    var thresh = 32;
+    var thresh = 12;
 
     var loop = animitter();
     loop.on('start', function(){
@@ -236,6 +236,34 @@ test('animitter().getElapsedTime() should track total time played', function(t){
         }, delay);
     });
     loop.start();
+});
+
+test('animitter().getElapsedTime() should not count time while stopped', function(t){
+
+    t.plan(2);
+
+    var loop = animitter.bound();
+
+    loop.on('update', function waitToPause(deltaTime, elapsedTime){
+
+        if(elapsedTime > 120){
+            loop.stop();
+            loop.off('update', waitToPause);
+
+            loop.once('update', function(deltaTine, elapsedTime){
+               console.log('updated again ' + deltaTime + ' elapsed: ' + elapsedTime);
+               t.ok(deltaTime <  100);
+               t.ok(elapsedTime < 300);
+               loop.stop();
+            });
+
+            setTimeout(loop.start, 200);
+        }
+
+    });
+
+    loop.start();
+
 });
 
 test('animitter().getElapsedTime() should stop counting forward when stopped', function(t){

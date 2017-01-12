@@ -87,9 +87,8 @@ function onStart(scope){
 
     exports.running += 1;
     scope.__running = true;
-    scope.__lastTime = scope.__lastTime || now;
-    scope.deltaTime = now - scope.__lastTime;
-    scope.elapsedTime += scope.deltaTime;
+    scope.__lastTime = now;
+    scope.deltaTime = 0;
 
     //emit **start** once at the beginning
     scope.emit('start', scope.deltaTime, 0, scope.frameCount);
