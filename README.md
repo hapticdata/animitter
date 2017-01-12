@@ -63,6 +63,37 @@ loop.on('reset', function(deltaTime, elapsedTime, frameCount){
 loop.start();   
 ```
 
+
+### Pausing and Resuming a loop
+
+Animitter provides `animitter().start()` and `animitter().stop()` to easily pause and resume an animation. Any stopped loop can be resumed with `animitter().start()` as long as it has not been marked as completed via `animitter().complete()`.
+
+```js
+
+var stats = document.createElement('div');
+var button = document.createElement('button');
+button.innerHTML = 'play';
+
+var loop = animitter(function(deltaTime, elapsedTime, frameCount){
+    stats.innerHTML = Math.floor(this.getFPS()) + 'fps, elapsed: ' +elapsedTime+ ', delta: ' +deltaTime+ ' frames: ' +frameCount;
+});
+
+loop.on('start', function(){ button.innerHTML = 'pause'; });
+loop.on('stop',  function(){ button.innerHTML = 'play'; });
+
+button.addEventListener('click', function(){
+    if(loop.isRunning()){
+      loop.stop();
+    } else {
+      loop.start();
+    }
+ });
+  
+ document.body.appendChild(stats);
+ document.body.appendChild(button);
+
+```
+
 ### Custom Events + Adding / Removing listeners
 Animitter uses the same [EventEmitter](http://nodejs.org/api/events.html) as Node.js. This allows you to `emit` events, add listeners with `on`,`once`,`addListener` or remove listeners with `removeListener` or `removeAllListeners`.
 
@@ -112,7 +143,10 @@ stop the loop and mark it as completed and unable to start again.
 stop the loop and remove all listeners.
 
 ### animitter().getFPS()
-return the framerate, 0-60.
+returns the calculated rate of frames-per-second for the last update based on `animitter().getDeltaTime()`, will return `0` if the loop has not started yet.
+
+### animitter().getFPSLimit()
+return the framerate as set via `options.fps` or `animitter().setFPS(fps)`, returns `Infinity` if no limit has been set.
 
 ### animitter().getRequestAnimationFrameObject()
 returns the object that is providing `requestAnimationFrame` to this instance
@@ -121,7 +155,7 @@ returns the object that is providing `requestAnimationFrame` to this instance
 return the time between the last two frames in milliseconds
 
 ### animittter().getElapsedTime()
-return the time between the last frame and the first frame in milliseconds.
+return the sum of all elapsed time while running in milliseconds. This is the sum of deltas between frames; if a loop is stopped and started later that time will not be included as elapsed time.
 
 ### animitter().getFrameCount()
 return the number of times the loop has repeated.
@@ -193,6 +227,10 @@ npm install budo -g
 budo test.js
 ```
 
+## Breaking changes from < 3.0.0
+
+* `animitter().getFPS()` now returns the actual running frame rate instead of just returning the frame rate set via `animitter().setFPS(fps)`, for this behavior use `animitter().setFPSLimit()`.
+* `animitter().getElapsedTime()` no longer includes durations that elapsed in-between when a loop has been stopped and started again.
 
 ## Breaking changes for those migrating from <1.0.0
 In v1.0.0 a few aspects of the API have changed. Most notably the parameter signature of all events is now:

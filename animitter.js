@@ -1,5 +1,5 @@
-// Animitter 2.0.0
-// Build: 2016-12-21
+// Animitter 3.0.0
+// Build: 2017-1-12
 // by Kyle Phillips - http://haptic-data.com
 // Available under MIT License
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.animitter = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
@@ -92,9 +92,8 @@ function onStart(scope){
 
     exports.running += 1;
     scope.__running = true;
-    scope.__lastTime = scope.__lastTime || now;
-    scope.deltaTime = now - scope.__lastTime;
-    scope.elapsedTime += scope.deltaTime;
+    scope.__lastTime = now;
+    scope.deltaTime = 0;
 
     //emit **start** once at the beginning
     scope.emit('start', scope.deltaTime, 0, scope.frameCount);
@@ -117,7 +116,6 @@ function onStart(scope){
             rAFID = scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
         } else {
             scope.requestAnimationFrameObject.cancelAnimationFrame(rAFID);
-            scope.emit('stop-2');
         }
     };
 
@@ -174,14 +172,26 @@ methods = {
     },
 
     /**
-     * get the instances frames per second
+     * get the instances frames per second as calculated by the last delta
      *
      * @return {Number}
      */
     getFPS: function(){
-        return this.__fps;
+        return this.deltaTime > 0 ? 1000 / this.deltaTime : 0;
+        if(this.deltaTime){
+            return 1000 / this.deltaTime;
+        }
     },
 
+    /**
+     * get the explicit FPS limit set via `Animitter#setFPS(fps)` or
+     * via the initial `options.fps` property
+     *
+     * @returns {Number} either as set or Infinity
+     */
+    getFPSLimit: function(){
+        return this.__fps;
+    },
 
     /**
      * get the number of frames that have occurred
@@ -308,7 +318,7 @@ methods = {
         /** @private */
         var now = Date.now();
         this.__lastTime = this.__lastTime || now;
-        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/this.__fps : now - this.__lastTime;
+        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/Math.min(60, this.__fps) : now - this.__lastTime;
         this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
 
@@ -327,7 +337,6 @@ for(var method in methods){
 /**
  * create an animitter instance,
  * @param {Object} [options]
- * @param {Number} [options.fps]
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
@@ -353,7 +362,6 @@ module.exports = exports = createAnimitter;
  * create an animitter instance,
  * where the scope is bound in all functions
  * @param {Object} [options]
- * @param {Number} [options.fps]
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
