@@ -1,5 +1,5 @@
-src
-tests
 node_modules
-Gruntfile.js
+bower.json
+prepend-banner.js
+test.js
 .travis.yml
