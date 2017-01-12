@@ -226,7 +226,7 @@ test('animitter().getElapsedTime() after reset', function(t){
 test('animitter().getElapsedTime() should track total time played', function(t){
     t.plan(1);
     var delay = 1000;
-    var thresh = 12;
+    var thresh = 32;
 
     var loop = animitter();
     loop.on('start', function(){
