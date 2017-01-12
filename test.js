@@ -426,8 +426,8 @@ function testFixedDelta(loop, t, callback){
 
 
     loop.once('update', function(delta, elapsed, frameCount){
-        t.equal(delta, 1000/this.getFPS(), 'delta should be fixed');
-        t.equal(elapsed, 1000/this.getFPS() * frameCount);
+        t.equal(delta, 1000/Math.min(60, Math.min(60, this.getFPS())), 'delta should be fixed');
+        t.equal(elapsed, 1000/Math.min(60, Math.min(60, this.getFPS())) * frameCount);
     });
 
     loop.update();
@@ -435,8 +435,8 @@ function testFixedDelta(loop, t, callback){
 
     setTimeout(function(){
         loop.once('update', function(delta, elapsed, frameCount){
-            t.equal(delta, 1000/this.getFPS());
-            t.equal(elapsed, 1000/this.getFPS() * frameCount);
+            t.equal(delta, 1000/Math.min(60, this.getFPS()));
+            t.equal(elapsed, 1000/Math.min(60, this.getFPS()) * frameCount);
         });
 
         loop.update();
@@ -454,8 +454,8 @@ function testNonFixedDelta(loop, t, callback){
     loop.update();
     setTimeout(function(){
         loop.once('update', function(delta, elapsed, frameCount){
-            t.ok(delta > 1000/this.getFPS() * frameCount, '3rd frame delta should not be fixed');
-            t.ok(elapsed > 1000/this.getFPS() * frameCount);
+            t.ok(delta > 1000/Math.min(60, this.getFPS()) * frameCount, '3rd frame delta should not be fixed');
+            t.ok(elapsed > 1000/Math.min(60, this.getFPS()) * frameCount);
 
             callback();
         });

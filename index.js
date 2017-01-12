@@ -112,7 +112,6 @@ function onStart(scope){
             rAFID = scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
         } else {
             scope.requestAnimationFrameObject.cancelAnimationFrame(rAFID);
-            scope.emit('stop-2');
         }
     };
 
@@ -303,7 +302,7 @@ methods = {
         /** @private */
         var now = Date.now();
         this.__lastTime = this.__lastTime || now;
-        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/this.__fps : now - this.__lastTime;
+        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/Math.min(60, this.__fps) : now - this.__lastTime;
         this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
 
@@ -322,7 +321,6 @@ for(var method in methods){
 /**
  * create an animitter instance,
  * @param {Object} [options]
- * @param {Number} [options.fps]
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
@@ -348,7 +346,6 @@ module.exports = exports = createAnimitter;
  * create an animitter instance,
  * where the scope is bound in all functions
  * @param {Object} [options]
- * @param {Number} [options.fps]
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
