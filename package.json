@@ -3,6 +3,7 @@
   "version": "3.0.0",
   "description": "Animitter is an animation loop + EventEmitter for browser, node, browserify or amd.",
   "main": "./index.js",
+  "types": "index.d.ts",
   "directories": {
     "test": "test"
   },
@@ -22,6 +23,7 @@
   ],
   "devDependencies": {
     "@types/raf": "^3.4.0",
+    "@types/tape": "^4.2.33",
     "browserify": "^16.2.3",
     "tape": "^4.10.1",
     "typescript": "^3.3.3333",

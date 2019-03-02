@@ -1,5 +1,6 @@
 import * as EventEmitter from 'eventemitter3';
 import * as raf from 'raf';
+import { isNumber } from 'util';
 
 
 
@@ -14,6 +15,20 @@ interface AnimitterOptions {
     fps?: number;
     requestAnimationFrameObject?: RAFObject
 }
+
+//type UpdateCallback = (...args: any[]) => void;
+type UpdateListener = (deltaTime: number, elapsedTime: number, frameCount: number) => void;
+interface AnimitterEvents {
+    complete: UpdateListener;
+    start: UpdateListener;
+    stop: UpdateListener;
+    update: UpdateListener;
+}
+
+//   interface AnimitterEventEmitter {
+//     on<K extends keyof BuiltInEvents>(deltaTime: number, elapsedTime: number, frameCount: number): void;
+//     // and so on for each method
+//   }
 
 //the same as off window unless polyfilled or in node
 const defaultRAFObject: RAFObject = {
@@ -52,6 +67,15 @@ function makeThrottle(fps: number): Predicate {
     };
 }
 
+interface AnimitterEvents {
+    on: {
+        (eventType: 'complete', listenerFn: UpdateListener, context?: any): Animitter;
+        (eventType: 'start', listenerFn: UpdateListener, context?: any): Animitter;
+        (eventType: 'stop', listenerFn: UpdateListener, context?: any): Animitter;
+        (eventType: 'update', listenerFn: UpdateListener, context?: any): Animitter;
+        (eventType: string, listenerFn: (...args: any[]) => void, context?: any): Animitter;
+    }
+}
 
 /**
  * Animitter provides event-based loops for the browser and node,
@@ -64,7 +88,7 @@ function makeThrottle(fps: number): Predicate {
  * @constructor
  */
 
- class Animitter extends EventEmitter {
+ class Animitter extends EventEmitter implements AnimitterEvents {
 
     /**
      * keep a global counter of all loops running, helpful to watch in dev tools
@@ -76,9 +100,27 @@ function makeThrottle(fps: number): Predicate {
      */
     public static globalFixedDelta: boolean = false;
 
+    /**
+     * if true, events will always increment deltaTime and elapsedTime by
+     * exactly the correct milliseconds for set frames per second.
+     * This is useful if recording frames or doing something asynchronous but
+     * you want animation interval to remain constant
+     */
     public fixedDelta: boolean = false;
+
+    /**
+     * how many frames have elapsed
+     */
     public frameCount: number = 0;
+
+    /**
+     * the amount of time in milliseconds since the last 'update' event
+     */
     public deltaTime: number = 0;
+
+    /**
+     * the amount of time in milliseconds that has elapsed total while running
+     */
     public elapsedTime: number = 0;
 
     private __completed: boolean = false;
@@ -91,33 +133,18 @@ function makeThrottle(fps: number): Predicate {
 
     constructor(opts: AnimitterOptions = {}){
         super();
-        opts = opts || {};
 
-        this.__delay = opts.delay || 0;
-
-        /** @expose */
-        this.fixedDelta = !!opts.fixedDelta;
-
-        /** @expose */
-        this.frameCount = 0;
-        /** @expose */
-        this.deltaTime = 0;
-        /** @expose */
-        this.elapsedTime = 0;
-
-        /** @private */
-        this.__running = false;
-        /** @private */
-        this.__completed = false;
+        isNumber(opts.delay) && (this.__delay = opts.delay);
+        (typeof opts.fixedDelta !== 'undefined') && (this.fixedDelta = !!opts.fixedDelta);
 
         this.setFPS(opts.fps || Infinity);
         this.setRequestAnimationFrameObject(opts.requestAnimationFrameObject || defaultRAFObject);
     }
 
-
-
     /**
-     * stops the animation and marks it as completed
+     * stops the animation and marks it as completed.
+     * This will trigger a 'complete' event and prevent it from being started
+     * without first calling reset().
      * @emit Animitter#complete
      * @returns {Animitter}
      */
@@ -213,12 +240,16 @@ function makeThrottle(fps: number): Predicate {
     isRunning() {
         return this.__running;
     }
+
+    onUpdate(listenerFn: UpdateListener, context?: any) {
+        return this.on('update', listenerFn, context);
+    }
+
     /**
      * reset the animation loop, marks as incomplete,
      * leaves listeners intact
      *
      * @emit Animitter#reset
-     * @return {Animitter}
      */
     reset() {
         this.stop();
@@ -352,7 +383,6 @@ function makeThrottle(fps: number): Predicate {
 }
 
 
-type UpdateCallback = (...args: any[]) => void;
 
 const isOptions = (o?: any): o is AnimitterOptions => o && typeof o === 'object';
 const isFunction = (o?: any): o is Function => o && typeof o === 'function';
@@ -363,7 +393,7 @@ const isFunction = (o?: any): o is Function => o && typeof o === 'function';
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-function createAnimitter(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCallback){
+function createAnimitter(options?: AnimitterOptions | UpdateListener, fn?: UpdateListener){
 
     if( arguments.length === 1 && isFunction(options)){
         fn = options;
@@ -387,7 +417,7 @@ function createAnimitter(options?: AnimitterOptions | UpdateCallback, fn?: Updat
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-function bound(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCallback){
+function bound(options?: AnimitterOptions | UpdateListener, fn?: UpdateListener){
 
     const loop = createAnimitter(options, fn) as any;
     const functionKeys = functions(Animitter.prototype);
