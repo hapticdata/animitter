@@ -37,27 +37,29 @@ function okDelta(fps, deltaTime){
 test('running counter', function(t){
     t.plan(5);
 
+    const Animitter = animitter.Animitter;
+
     var n = 100;
     var loops;
 
     //havent been started yet
     loops = createLoops(n);
-    t.equal(animitter.running, 0, 'should have 0 animations running after creation');
+    t.equal(Animitter.instancesRunning, 0, 'should have 0 animations running after creation');
 
     //started now
     invoke(loops, 'start');
-    t.equal(animitter.running, n, 'all ' + n + ' loops running');
+    t.equal(Animitter.instancesRunning, n, 'all ' + n + ' loops running');
 
     //stopped
     invoke(loops, 'stop');
-    t.equal(animitter.running, 0, 'all ' + n + ' loops should be stopped and not counted as running');
+    t.equal(Animitter.instancesRunning, 0, 'all ' + n + ' loops should be stopped and not counted as running');
 
     invoke(loops, 'start');
     //half are stopped half are completed
     loops.forEach(function(loop, i){
         loop[ (i%2===0) ? 'stop' : 'complete' ]();
     });
-    t.equal(animitter.running, 0, 'complete() and stop() should both drop the running counter');
+    t.equal(Animitter.instancesRunning, 0, 'complete() and stop() should both drop the running counter');
 
 
     //repeatedly stopped, counter should not go negative
@@ -66,7 +68,7 @@ test('running counter', function(t){
     invoke(loops, 'complete');
     invoke(loops, 'stop');
 
-    t.equal(animitter.running, 0, 'should not go negative when calling stop multiple times in a row');
+    t.equal(Animitter.instancesRunning, 0, 'should not go negative when calling stop multiple times in a row');
 });
 
 test('load animitter', function(t){
@@ -574,3 +576,10 @@ test('animitter().setRequestAnimationFrameObject(object)', function(t){
 
 });
 
+
+test('animitter.Animitter: Animitter exported', function(t) {
+    t.plan(3);
+    t.ok(!!animitter.Animitter);
+    t.equals(typeof animitter.Animitter.prototype.start, 'function');
+    t.equals(typeof animitter.Animitter.prototype.update, 'function');
+});

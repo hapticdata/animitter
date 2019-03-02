@@ -64,7 +64,7 @@ function makeThrottle(fps: number): Predicate {
  * @constructor
  */
 
- export class Animitter extends EventEmitter {
+ class Animitter extends EventEmitter {
 
     /**
      * keep a global counter of all loops running, helpful to watch in dev tools
@@ -363,7 +363,7 @@ const isFunction = (o?: any): o is Function => o && typeof o === 'function';
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-export default function createAnimitter(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCallback){
+function createAnimitter(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCallback){
 
     if( arguments.length === 1 && isFunction(options)){
         fn = options;
@@ -387,7 +387,7 @@ export default function createAnimitter(options?: AnimitterOptions | UpdateCallb
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-export function bound(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCallback){
+function bound(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCallback){
 
     const loop = createAnimitter(options, fn) as any;
     const functionKeys = functions(Animitter.prototype);
@@ -405,8 +405,31 @@ export function bound(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCa
 
 
 
+createAnimitter.Animitter = Animitter;
+createAnimitter.bound = bound;
+createAnimitter.EventEmitter = EventEmitter;
+
+Object.defineProperty(createAnimitter, 'running', {
+    get: function() {
+        return Animitter.instancesRunning;
+    }
+});
+
+Object.defineProperty(createAnimitter, 'globalFixedDelta', {
+    get: function() {
+        return Animitter.globalFixedDelta;
+    },
+    set: function(v: boolean) {
+        Animitter.globalFixedDelta = v;
+    }
+});
+
+export = createAnimitter;
+
+
+
 //helpful to inherit from when using bundled
-export { EventEmitter };
+//export { EventEmitter };
 
 function bind(fn: Function, scope: any){
     if(typeof fn.bind === 'function'){

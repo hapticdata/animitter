@@ -7,7 +7,7 @@
     "test": "test"
   },
   "scripts": {
-    "test": "node test.js",
+    "test": "npm run tsc && node test.js",
     "tsc": "tsc",
     "build": "browserify ./index.js --standalone animitter | node prepend-banner.js > animitter.js && uglifyjs animitter.js > animitter.min.js"
   },
