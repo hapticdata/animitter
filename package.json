@@ -24,7 +24,7 @@
     "@types/raf": "^3.4.0",
     "browserify": "^16.2.3",
     "tape": "^4.10.1",
-    "tsc": "^1.20150623.0",
+    "typescript": "^3.3.3333",
     "uglify-js": "^3.4.9"
   },
   "dependencies": {
