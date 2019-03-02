@@ -1,19 +1,32 @@
-var EventEmitter          = require('events').EventEmitter,
-    inherits              = require('inherits'),
-    raf                   = require('raf'),
-    methods;
+import * as EventEmitter from 'eventemitter3';
+import * as raf from 'raf';
 
+
+
+interface RAFObject {
+    requestAnimationFrame: (callback: FrameRequestCallback) => number;
+    cancelAnimationFrame: ( id: number) => void;
+}
+
+interface AnimitterOptions {
+    delay?: number;
+    fixedDelta?: boolean;
+    fps?: number;
+    requestAnimationFrameObject?: RAFObject
+}
 
 //the same as off window unless polyfilled or in node
-var defaultRAFObject = {
+const defaultRAFObject: RAFObject = {
     requestAnimationFrame: raf,
     cancelAnimationFrame: raf.cancel
 };
 
+type Predicate = () => boolean;
+
 function returnTrue(){ return true; }
 
 //manage FPS if < 60, else return true;
-function makeThrottle(fps){
+function makeThrottle(fps: number): Predicate {
     var delay = 1000/fps;
     var lastTime = Date.now();
 
@@ -50,111 +63,90 @@ function makeThrottle(fps){
  * @param {Boolean} [opts.fixedDelta=false] if true, timestamps will pretend to be executed at fixed intervals always
  * @constructor
  */
-function Animitter( opts ){
-    opts = opts || {};
 
-    this.__delay = opts.delay || 0;
+ export class Animitter extends EventEmitter {
 
-    /** @expose */
-    this.fixedDelta = !!opts.fixedDelta;
+    /**
+     * keep a global counter of all loops running, helpful to watch in dev tools
+     */
+    public static instancesRunning: number = 0;
 
-    /** @expose */
-    this.frameCount = 0;
-    /** @expose */
-    this.deltaTime = 0;
-    /** @expose */
-    this.elapsedTime = 0;
+    /**
+     * if true, all `Animitter` instances will behave as if `options.fixedDelta = true`
+     */
+    public static globalFixedDelta: boolean = false;
 
-    /** @private */
-    this.__running = false;
-    /** @private */
-    this.__completed = false;
+    public fixedDelta: boolean = false;
+    public frameCount: number = 0;
+    public deltaTime: number = 0;
+    public elapsedTime: number = 0;
 
-    this.setFPS(opts.fps || Infinity);
-    this.setRequestAnimationFrameObject(opts.requestAnimationFrameObject || defaultRAFObject);
-}
+    private __completed: boolean = false;
+    private __delay: number = 0;
+    private __fps: number = Infinity;
+    private __isReadyForUpdate: Predicate = returnTrue;
+    private __lastTime: number = 0;
+    private __requestAnimationFrameObject: RAFObject = defaultRAFObject;
+    private __running: boolean = false;
 
-inherits(Animitter, EventEmitter);
+    constructor(opts: AnimitterOptions = {}){
+        super();
+        opts = opts || {};
 
-function onStart(scope){
-    var now = Date.now();
-    var rAFID;
-    //dont let a second animation start on the same object
-    //use *.on('update',fn)* instead
-    if(scope.__running){
-        return scope;
+        this.__delay = opts.delay || 0;
+
+        /** @expose */
+        this.fixedDelta = !!opts.fixedDelta;
+
+        /** @expose */
+        this.frameCount = 0;
+        /** @expose */
+        this.deltaTime = 0;
+        /** @expose */
+        this.elapsedTime = 0;
+
+        /** @private */
+        this.__running = false;
+        /** @private */
+        this.__completed = false;
+
+        this.setFPS(opts.fps || Infinity);
+        this.setRequestAnimationFrameObject(opts.requestAnimationFrameObject || defaultRAFObject);
     }
 
-    exports.running += 1;
-    scope.__running = true;
-    scope.__lastTime = now;
-    scope.deltaTime = 0;
 
-    //emit **start** once at the beginning
-    scope.emit('start', scope.deltaTime, 0, scope.frameCount);
-
-    var lastRAFObject = scope.requestAnimationFrameObject;
-
-    var drawFrame = function(){
-        if(lastRAFObject !== scope.requestAnimationFrameObject){
-            //if the requestAnimationFrameObject switched in-between,
-            //then re-request with the new one to ensure proper update execution context
-            //i.e. VRDisplay#submitFrame() may only be requested through VRDisplay#requestAnimationFrame(drawFrame)
-            lastRAFObject = scope.requestAnimationFrameObject;
-            scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
-            return;
-        }
-        if(scope.__isReadyForUpdate()){
-            scope.update();
-        }
-        if(scope.__running){
-            rAFID = scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
-        } else {
-            scope.requestAnimationFrameObject.cancelAnimationFrame(rAFID);
-        }
-    };
-
-    scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
-
-    return scope;
-}
-
-methods = {
-    //EventEmitter Aliases
-    off     : EventEmitter.prototype.removeListener,
-    trigger : EventEmitter.prototype.emit,
 
     /**
      * stops the animation and marks it as completed
      * @emit Animitter#complete
      * @returns {Animitter}
      */
-    complete: function(){
+    complete() {
         this.stop();
         this.__completed = true;
         this.emit('complete', this.frameCount, this.deltaTime);
         return this;
-    },
+    }
 
     /**
      * stops the animation and removes all listeners
      * @emit Animitter#stop
      * @returns {Animitter}
      */
-    dispose: function(){
+    dispose() {
         this.stop();
         this.removeAllListeners();
         return this;
-    },
+    }
 
     /**
      * get milliseconds between the last 2 updates
      *
      * @return {Number}
      */
-    getDeltaTime: function(){
+    getDeltaTime() {
         return this.deltaTime;
-    },
+    }
 
     /**
      * get the total milliseconds that the animation has ran.
@@ -162,21 +154,18 @@ methods = {
      *
      * @return {Number}
      */
-    getElapsedTime: function(){
+    getElapsedTime() {
         return this.elapsedTime;
-    },
+    }
 
     /**
      * get the instances frames per second as calculated by the last delta
      *
      * @return {Number}
      */
-    getFPS: function(){
+    getFPS() {
         return this.deltaTime > 0 ? 1000 / this.deltaTime : 0;
-        if(this.deltaTime){
-            return 1000 / this.deltaTime;
-        }
-    },
+    }
 
     /**
      * get the explicit FPS limit set via `Animitter#setFPS(fps)` or
@@ -184,18 +173,18 @@ methods = {
      *
      * @returns {Number} either as set or Infinity
      */
-    getFPSLimit: function(){
+    getFPSLimit() {
         return this.__fps;
-    },
+    }
 
     /**
      * get the number of frames that have occurred
      *
      * @return {Number}
      */
-    getFrameCount: function(){
+    getFrameCount() {
         return this.frameCount;
-    },
+    }
 
 
     /**
@@ -203,28 +192,27 @@ methods = {
      * and `cancelAnimationFrame` methods
      * @return {Object}
      */
-    getRequestAnimationFrameObject: function(){
-        return this.requestAnimationFrameObject;
-    },
-
-    /**
-     * is the animation loop active
-     *
-     * @return {boolean}
-     */
-    isRunning: function(){
-        return this.__running;
-    },
+    getRequestAnimationFrameObject() {
+        return this.__requestAnimationFrameObject;
+    }
 
     /**
      * is the animation marked as completed
      *
      * @return {boolean}
      */
-    isCompleted: function(){
+    isCompleted() {
         return this.__completed;
-    },
+    }
 
+    /**
+     * is the animation loop active
+     *
+     * @return {boolean}
+     */
+    isRunning() {
+        return this.__running;
+    }
     /**
      * reset the animation loop, marks as incomplete,
      * leaves listeners intact
@@ -232,7 +220,7 @@ methods = {
      * @emit Animitter#reset
      * @return {Animitter}
      */
-    reset: function(){
+    reset() {
         this.stop();
         this.__completed = false;
         this.__lastTime = 0;
@@ -242,7 +230,7 @@ methods = {
 
         this.emit('reset', 0, 0, this.frameCount);
         return this;
-    },
+    }
 
     /**
      * set the framerate for the animation loop
@@ -250,11 +238,11 @@ methods = {
      * @param {Number} fps
      * @return {Animitter}
      */
-    setFPS: function(fps){
+    setFPS(fps: number) {
         this.__fps = fps;
         this.__isReadyForUpdate = makeThrottle(fps);
         return this;
-    },
+    }
 
     /**
      * set the object that will provide `requestAnimationFrame`
@@ -262,30 +250,71 @@ methods = {
      * @param {Object} object
      * @return {Animitter}
      */
-    setRequestAnimationFrameObject: function(object){
+    setRequestAnimationFrameObject(object: RAFObject) {
         if(typeof object.requestAnimationFrame !== 'function' || typeof object.cancelAnimationFrame !== 'function'){
             throw new Error("Invalid object provide to `setRequestAnimationFrameObject`");
         }
-        this.requestAnimationFrameObject = object;
+        this.__requestAnimationFrameObject = object;
         return this;
-    },
+    }
 
     /**
      * start an animation loop
      * @emit Animitter#start
      * @return {Animitter}
      */
-    start: function(){
-        var self = this;
+    start() {
+
+        const onStart = () =>{
+            let rAFID: number;
+            //dont let a second animation start on the same object
+            //use *.on('update',fn)* instead
+            if(this.__running){
+                return this;
+            }
+
+            Animitter.instancesRunning += 1;
+            this.__running = true;
+            this.__lastTime = Date.now();
+            this.deltaTime = 0;
+
+            //emit **start** once at the beginning
+            this.emit('start', this.deltaTime, 0, this.frameCount);
+
+            let lastRAFObject = this.__requestAnimationFrameObject;
+
+            const drawFrame = () => {
+                const raf = this.getRequestAnimationFrameObject();
+                if(lastRAFObject !== raf) {
+                    //if the requestAnimationFrameObject switched in-between,
+                    //then re-request with the new one to ensure proper update execution context
+                    //i.e. VRDisplay#submitFrame() may only be requested through VRDisplay#requestAnimationFrame(drawFrame)
+                    lastRAFObject = raf;
+                    raf.requestAnimationFrame(drawFrame);
+                    return;
+                }
+                if(this.__isReadyForUpdate()){
+                    this.update();
+                }
+                if(this.__running){
+                    rAFID = raf.requestAnimationFrame(drawFrame);
+                } else {
+                    raf.cancelAnimationFrame(rAFID);
+                }
+            };
+
+            this.getRequestAnimationFrameObject().requestAnimationFrame(drawFrame);
+
+            return this;
+        }
+
         if(this.__delay){
-            setTimeout(function(){
-                onStart(self);
-            }, this.__delay);
+            setTimeout(onStart, this.__delay);
         } else {
-            onStart(this);
+            onStart();
         }
         return this;
-    },
+    }
 
     /**
      * stops the animation loop, does not mark as completed
@@ -293,14 +322,14 @@ methods = {
      * @emit Animitter#stop
      * @return {Animitter}
      */
-    stop: function(){
+    stop() {
         if( this.__running ){
             this.__running = false;
-            exports.running -= 1;
+            Animitter.instancesRunning -= 1;
             this.emit('stop', this.deltaTime, this.elapsedTime, this.frameCount);
         }
         return this;
-    },
+    }
 
     /**
      * update the animation loop once
@@ -308,26 +337,25 @@ methods = {
      * @emit Animitter#update
      * @return {Animitter}
      */
-    update: function(){
+    update() {
         this.frameCount++;
         /** @private */
         var now = Date.now();
         this.__lastTime = this.__lastTime || now;
-        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/Math.min(60, this.__fps) : now - this.__lastTime;
+        this.deltaTime = (this.fixedDelta || Animitter.globalFixedDelta) ? 1000/Math.min(60, this.__fps) : now - this.__lastTime;
         this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
 
         this.emit('update', this.deltaTime, this.elapsedTime, this.frameCount);
         return this;
     }
-};
-
-
-
-for(var method in methods){
-    Animitter.prototype[method] = methods[method];
 }
 
+
+type UpdateCallback = (...args: any[]) => void;
+
+const isOptions = (o?: any): o is AnimitterOptions => o && typeof o === 'object';
+const isFunction = (o?: any): o is Function => o && typeof o === 'function';
 
 /**
  * create an animitter instance,
@@ -335,14 +363,14 @@ for(var method in methods){
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-function createAnimitter(options, fn){
+export default function createAnimitter(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCallback){
 
-    if( arguments.length === 1 && typeof options === 'function'){
+    if( arguments.length === 1 && isFunction(options)){
         fn = options;
         options = {};
     }
 
-    var _instance = new Animitter( options );
+    const _instance = new Animitter( options as AnimitterOptions );
 
     if( fn ){
         _instance.on('update', fn);
@@ -351,7 +379,6 @@ function createAnimitter(options, fn){
     return _instance;
 }
 
-module.exports = exports = createAnimitter;
 
 /**
  * create an animitter instance,
@@ -360,35 +387,28 @@ module.exports = exports = createAnimitter;
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-exports.bound = function(options, fn){
+export function bound(options?: AnimitterOptions | UpdateCallback, fn?: UpdateCallback){
 
-    var loop = createAnimitter(options, fn),
-        functionKeys = functions(Animitter.prototype),
-        hasBind = !!Function.prototype.bind,
-        fnKey;
+    const loop = createAnimitter(options, fn) as any;
+    const functionKeys = functions(Animitter.prototype);
+    const hasBind = !!Function.prototype.bind;
+
+    let fnKey: string;
 
     for(var i=0; i<functionKeys.length; i++){
         fnKey = functionKeys[i];
         loop[fnKey] = hasBind ? loop[fnKey].bind(loop) : bind(loop[fnKey], loop);
     }
 
-    return loop;
+    return loop as Animitter;
 };
 
 
-exports.Animitter = Animitter;
-
-/**
- * if true, all `Animitter` instances will behave as if `options.fixedDelta = true`
- */
-exports.globalFixedDelta = false;
 
 //helpful to inherit from when using bundled
-exports.EventEmitter = EventEmitter;
-//keep a global counter of all loops running, helpful to watch in dev tools
-exports.running = 0;
+export { EventEmitter };
 
-function bind(fn, scope){
+function bind(fn: Function, scope: any){
     if(typeof fn.bind === 'function'){
         return fn.bind(scope);
     }
@@ -397,7 +417,7 @@ function bind(fn, scope){
     };
 }
 
-function functions(obj){
+function functions(obj: any): string[] {
     var keys = Object.keys(obj);
     var arr = [];
     for(var i=0; i<keys.length; i++){

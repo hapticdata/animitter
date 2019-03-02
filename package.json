@@ -8,6 +8,7 @@
   },
   "scripts": {
     "test": "node test.js",
+    "tsc": "tsc",
     "build": "browserify ./index.js --standalone animitter | node prepend-banner.js > animitter.js && uglifyjs animitter.js > animitter.min.js"
   },
   "repository": "http://github.com/hapticdata/animitter",
@@ -20,12 +21,14 @@
     }
   ],
   "devDependencies": {
-    "tape": "^4.2.0",
-    "browserify": "^11.0.1",
-    "uglify-js": "^2.4.24"
+    "@types/raf": "^3.4.0",
+    "browserify": "^16.2.3",
+    "tape": "^4.10.1",
+    "tsc": "^1.20150623.0",
+    "uglify-js": "^3.4.9"
   },
   "dependencies": {
-    "inherits": "^2.0.1",
+    "eventemitter3": "^3.1.0",
     "raf": "^3.1.0"
   }
 }
