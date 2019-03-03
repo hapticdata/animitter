@@ -1,6 +1,5 @@
 import * as EventEmitter from 'eventemitter3';
 import * as raf from 'raf';
-import { isNumber } from 'util';
 
 
 
@@ -134,7 +133,7 @@ interface AnimitterEvents {
     constructor(opts: AnimitterOptions = {}){
         super();
 
-        isNumber(opts.delay) && (this.__delay = opts.delay);
+        (typeof opts.delay === 'number') && (this.__delay = opts.delay);
         (typeof opts.fixedDelta !== 'undefined') && (this.fixedDelta = !!opts.fixedDelta);
 
         this.setFPS(opts.fps || Infinity);
@@ -383,8 +382,6 @@ interface AnimitterEvents {
 }
 
 
-
-const isOptions = (o?: any): o is AnimitterOptions => o && typeof o === 'object';
 const isFunction = (o?: any): o is Function => o && typeof o === 'function';
 
 /**
