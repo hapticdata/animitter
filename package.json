@@ -10,7 +10,7 @@
   "scripts": {
     "test": "npm run tsc && node test.js",
     "tsc": "tsc",
-    "build": "browserify ./index.js --standalone animitter | node prepend-banner.js > animitter.js && uglifyjs animitter.js > animitter.min.js"
+    "build": "npm run tsc && browserify -p [ tsify ] ./index.js --standalone animitter | node prepend-banner.js > animitter.js && uglifyjs animitter.js > animitter.min.js"
   },
   "repository": "http://github.com/hapticdata/animitter",
   "author": "Kyle Phillips",
@@ -26,6 +26,7 @@
     "@types/tape": "^4.2.33",
     "browserify": "^16.2.3",
     "tape": "^4.10.1",
+    "tsify": "^4.0.1",
     "typescript": "^3.3.3333",
     "uglify-js": "^3.4.9"
   },
