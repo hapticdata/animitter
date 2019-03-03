@@ -1,6 +1,6 @@
 {
   "name": "animitter",
-  "version": "3.0.0",
+  "version": "4.0.0-alpha1",
   "description": "Animitter is an animation loop + EventEmitter for browser, node, browserify or amd.",
   "main": "./index.js",
   "types": "index.d.ts",
@@ -8,8 +8,9 @@
     "test": "test"
   },
   "scripts": {
-    "test": "npm run tsc && node test.js",
+    "test-existing": "node test.js",
     "tsc": "tsc",
+    "test": "npm run tsc && npm run test-existing",
     "build": "npm run tsc && browserify -p [ tsify ] ./index.js --standalone animitter | node prepend-banner.js > animitter.js && uglifyjs animitter.js > animitter.min.js"
   },
   "repository": "http://github.com/hapticdata/animitter",
