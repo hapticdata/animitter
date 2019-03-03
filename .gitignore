@@ -5,3 +5,6 @@ node_modules
 .jshintrc
 package-lock.json
 index.js
+
+# ignore declaration files
+*.d.ts
