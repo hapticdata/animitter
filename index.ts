@@ -15,7 +15,6 @@ interface AnimitterOptions {
     requestAnimationFrameObject?: RAFObject
 }
 
-//type UpdateCallback = (...args: any[]) => void;
 type UpdateListener = (deltaTime: number, elapsedTime: number, frameCount: number) => void;
 interface AnimitterEvents {
     complete: UpdateListener;
@@ -430,7 +429,21 @@ function bound(options?: AnimitterOptions | UpdateListener, fn?: UpdateListener)
     return loop as Animitter;
 };
 
+interface AnimitterConstructor {
+    new (options?: AnimitterOptions) : Animitter;
+}
 
+interface EventEmitterConstructor {
+    new (): EventEmitter;
+}
+
+interface AnimitterModule {
+    Animitter: AnimitterConstructor;
+    bound: Function;
+    EventEmitter: EventEmitterConstructor;
+    readonly running: number;
+    globalFixedDelta: boolean;
+}
 
 createAnimitter.Animitter = Animitter;
 createAnimitter.bound = bound;
@@ -451,7 +464,9 @@ Object.defineProperty(createAnimitter, 'globalFixedDelta', {
     }
 });
 
-export = createAnimitter;
+const animitter = (createAnimitter as unknown) as AnimitterModule;
+
+export = animitter;
 
 
 
