@@ -1,50 +1,59 @@
-// Animitter 3.0.0
-// Build: 2017-1-12
+// Animitter 4.0.0-beta
+// Build: 2020-3-29
 // by Kyle Phillips - http://haptic-data.com
 // Available under MIT License
-(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.animitter = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
-var EventEmitter          = require('events').EventEmitter,
-    inherits              = require('inherits'),
-    raf                   = require('raf'),
-    methods;
-
-
+(function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.animitter = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
+"use strict";
+var __extends = (this && this.__extends) || (function () {
+    var extendStatics = function (d, b) {
+        extendStatics = Object.setPrototypeOf ||
+            ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+            function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
+        return extendStatics(d, b);
+    };
+    return function (d, b) {
+        extendStatics(d, b);
+        function __() { this.constructor = d; }
+        d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
+    };
+})();
+Object.defineProperty(exports, "__esModule", { value: true });
+var EventEmitter = require("eventemitter3");
+exports.EventEmitter = EventEmitter;
+var raf = require("raf");
+//   interface AnimitterEventEmitter {
+//     on<K extends keyof BuiltInEvents>(deltaTime: number, elapsedTime: number, frameCount: number): void;
+//     // and so on for each method
+//   }
 //the same as off window unless polyfilled or in node
 var defaultRAFObject = {
     requestAnimationFrame: raf,
     cancelAnimationFrame: raf.cancel
 };
-
-function returnTrue(){ return true; }
-
+function returnTrue() { return true; }
 //manage FPS if < 60, else return true;
-function makeThrottle(fps){
-    var delay = 1000/fps;
+function makeThrottle(fps) {
+    var delay = 1000 / fps;
     var lastTime = Date.now();
-
-
-    if( fps<=0 || fps === Infinity ){
+    if (fps <= 0 || fps === Infinity) {
         return returnTrue;
     }
-
     //if an fps throttle has been set then we'll assume
     //it natively runs at 60fps,
     var half = Math.ceil(1000 / 60) / 2;
-
-    return function(){
+    return function () {
         //if a custom fps is requested
         var now = Date.now();
         //is this frame within 8.5ms of the target?
         //if so then next frame is gonna be too late
-        if(now - lastTime < delay - half){
+        if (now - lastTime < delay - half) {
             return false;
         }
         lastTime = now;
         return true;
     };
 }
-
-
+//type AnimitterEventTypes = 'complete' | 'start' | 'stop' | 'update';
 /**
  * Animitter provides event-based loops for the browser and node,
  * using `requestAnimationFrame`
@@ -55,309 +64,308 @@ function makeThrottle(fps){
  * @param {Boolean} [opts.fixedDelta=false] if true, timestamps will pretend to be executed at fixed intervals always
  * @constructor
  */
-function Animitter( opts ){
-    opts = opts || {};
-
-    this.__delay = opts.delay || 0;
-
-    /** @expose */
-    this.fixedDelta = !!opts.fixedDelta;
-
-    /** @expose */
-    this.frameCount = 0;
-    /** @expose */
-    this.deltaTime = 0;
-    /** @expose */
-    this.elapsedTime = 0;
-
-    /** @private */
-    this.__running = false;
-    /** @private */
-    this.__completed = false;
-
-    this.setFPS(opts.fps || Infinity);
-    this.setRequestAnimationFrameObject(opts.requestAnimationFrameObject || defaultRAFObject);
-}
-
-inherits(Animitter, EventEmitter);
-
-function onStart(scope){
-    var now = Date.now();
-    var rAFID;
-    //dont let a second animation start on the same object
-    //use *.on('update',fn)* instead
-    if(scope.__running){
-        return scope;
+var Animitter = /** @class */ (function (_super) {
+    __extends(Animitter, _super);
+    function Animitter(opts) {
+        if (opts === void 0) { opts = {}; }
+        var _this = _super.call(this) || this;
+        /**
+         * if true, events will always increment deltaTime and elapsedTime by
+         * exactly the correct milliseconds for set frames per second.
+         * This is useful if recording frames or doing something asynchronous but
+         * you want animation interval to remain constant
+         */
+        _this.fixedDelta = false;
+        /**
+         * how many frames have elapsed
+         */
+        _this.frameCount = 0;
+        /**
+         * the amount of time in milliseconds since the last 'update' event
+         */
+        _this.deltaTime = 0;
+        /**
+         * the amount of time in milliseconds that has elapsed total while running
+         */
+        _this.elapsedTime = 0;
+        _this.__completed = false;
+        _this.__delay = 0;
+        _this.__fps = Infinity;
+        _this.__isReadyForUpdate = returnTrue;
+        _this.__lastTime = 0;
+        _this.__requestAnimationFrameObject = defaultRAFObject;
+        _this.__running = false;
+        (typeof opts.delay === 'number') && (_this.__delay = opts.delay);
+        (typeof opts.fixedDelta !== 'undefined') && (_this.fixedDelta = !!opts.fixedDelta);
+        _this.setFPS(opts.fps || Infinity);
+        _this.setRequestAnimationFrameObject(opts.requestAnimationFrameObject || defaultRAFObject);
+        return _this;
     }
-
-    exports.running += 1;
-    scope.__running = true;
-    scope.__lastTime = now;
-    scope.deltaTime = 0;
-
-    //emit **start** once at the beginning
-    scope.emit('start', scope.deltaTime, 0, scope.frameCount);
-
-    var lastRAFObject = scope.requestAnimationFrameObject;
-
-    var drawFrame = function(){
-        if(lastRAFObject !== scope.requestAnimationFrameObject){
-            //if the requestAnimationFrameObject switched in-between,
-            //then re-request with the new one to ensure proper update execution context
-            //i.e. VRDisplay#submitFrame() may only be requested through VRDisplay#requestAnimationFrame(drawFrame)
-            lastRAFObject = scope.requestAnimationFrameObject;
-            scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
-            return;
-        }
-        if(scope.__isReadyForUpdate()){
-            scope.update();
-        }
-        if(scope.__running){
-            rAFID = scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
-        } else {
-            scope.requestAnimationFrameObject.cancelAnimationFrame(rAFID);
-        }
-    };
-
-    scope.requestAnimationFrameObject.requestAnimationFrame(drawFrame);
-
-    return scope;
-}
-
-methods = {
-    //EventEmitter Aliases
-    off     : EventEmitter.prototype.removeListener,
-    trigger : EventEmitter.prototype.emit,
-
     /**
-     * stops the animation and marks it as completed
+     * stops the animation and marks it as completed.
+     * This will trigger a 'complete' event and prevent it from being started
+     * without first calling reset().
      * @emit Animitter#complete
      * @returns {Animitter}
      */
-    complete: function(){
-        this.stop();
+    Animitter.prototype.complete = function () {
         this.__completed = true;
-        this.emit('complete', this.frameCount, this.deltaTime);
+        this.stop();
+        this.emit('complete', this.deltaTime, this.elapsedTime, this.frameCount);
         return this;
-    },
-
+    };
     /**
      * stops the animation and removes all listeners
      * @emit Animitter#stop
      * @returns {Animitter}
      */
-    dispose: function(){
+    Animitter.prototype.dispose = function () {
         this.stop();
         this.removeAllListeners();
         return this;
-    },
-
+    };
     /**
      * get milliseconds between the last 2 updates
      *
      * @return {Number}
      */
-    getDeltaTime: function(){
+    Animitter.prototype.getDeltaTime = function () {
         return this.deltaTime;
-    },
-
+    };
     /**
      * get the total milliseconds that the animation has ran.
      * This is the cumlative value of the deltaTime between frames
      *
      * @return {Number}
      */
-    getElapsedTime: function(){
+    Animitter.prototype.getElapsedTime = function () {
         return this.elapsedTime;
-    },
-
+    };
     /**
      * get the instances frames per second as calculated by the last delta
      *
      * @return {Number}
      */
-    getFPS: function(){
+    Animitter.prototype.getFPS = function () {
         return this.deltaTime > 0 ? 1000 / this.deltaTime : 0;
-        if(this.deltaTime){
-            return 1000 / this.deltaTime;
-        }
-    },
-
+    };
     /**
      * get the explicit FPS limit set via `Animitter#setFPS(fps)` or
      * via the initial `options.fps` property
      *
      * @returns {Number} either as set or Infinity
      */
-    getFPSLimit: function(){
+    Animitter.prototype.getFPSLimit = function () {
         return this.__fps;
-    },
-
+    };
     /**
      * get the number of frames that have occurred
      *
      * @return {Number}
      */
-    getFrameCount: function(){
+    Animitter.prototype.getFrameCount = function () {
         return this.frameCount;
-    },
-
-
+    };
     /**
      * get the object providing `requestAnimationFrame`
      * and `cancelAnimationFrame` methods
      * @return {Object}
      */
-    getRequestAnimationFrameObject: function(){
-        return this.requestAnimationFrameObject;
-    },
-
-    /**
-     * is the animation loop active
-     *
-     * @return {boolean}
-     */
-    isRunning: function(){
-        return this.__running;
-    },
-
+    Animitter.prototype.getRequestAnimationFrameObject = function () {
+        return this.__requestAnimationFrameObject;
+    };
     /**
      * is the animation marked as completed
      *
      * @return {boolean}
      */
-    isCompleted: function(){
+    Animitter.prototype.isCompleted = function () {
         return this.__completed;
-    },
-
+    };
+    /**
+     * is the animation loop active
+     *
+     * @return {boolean}
+     */
+    Animitter.prototype.isRunning = function () {
+        return this.__running;
+    };
+    Animitter.prototype.on = function (eventType, listenerFn, context) {
+        _super.prototype.on.call(this, eventType, listenerFn, context);
+        return this;
+    };
+    Animitter.prototype.once = function (eventType, listenerFn, context) {
+        _super.prototype.once.call(this, eventType, listenerFn, context);
+        return this;
+    };
+    Animitter.prototype.onComplete = function (listenerFn, context) {
+        return this.on('complete', listenerFn, context);
+    };
+    Animitter.prototype.onReset = function (listenerFn, context) {
+        return this.on('reset', listenerFn, context);
+    };
+    Animitter.prototype.onStart = function (listenerFn, context) {
+        return this.on('start', listenerFn, context);
+    };
+    Animitter.prototype.onStop = function (listenerFn, context) {
+        return this.on('stop', listenerFn, context);
+    };
+    Animitter.prototype.onUpdate = function (listenerFn, context) {
+        return this.on('update', listenerFn, context);
+    };
     /**
      * reset the animation loop, marks as incomplete,
      * leaves listeners intact
      *
      * @emit Animitter#reset
-     * @return {Animitter}
      */
-    reset: function(){
+    Animitter.prototype.reset = function () {
         this.stop();
         this.__completed = false;
         this.__lastTime = 0;
         this.deltaTime = 0;
         this.elapsedTime = 0;
         this.frameCount = 0;
-
         this.emit('reset', 0, 0, this.frameCount);
         return this;
-    },
-
+    };
     /**
      * set the framerate for the animation loop
      *
      * @param {Number} fps
      * @return {Animitter}
      */
-    setFPS: function(fps){
+    Animitter.prototype.setFPS = function (fps) {
         this.__fps = fps;
         this.__isReadyForUpdate = makeThrottle(fps);
         return this;
-    },
-
+    };
     /**
      * set the object that will provide `requestAnimationFrame`
      * and `cancelAnimationFrame` methods to this instance
      * @param {Object} object
      * @return {Animitter}
      */
-    setRequestAnimationFrameObject: function(object){
-        if(typeof object.requestAnimationFrame !== 'function' || typeof object.cancelAnimationFrame !== 'function'){
+    Animitter.prototype.setRequestAnimationFrameObject = function (object) {
+        if (typeof object.requestAnimationFrame !== 'function' || typeof object.cancelAnimationFrame !== 'function') {
             throw new Error("Invalid object provide to `setRequestAnimationFrameObject`");
         }
-        this.requestAnimationFrameObject = object;
+        this.__requestAnimationFrameObject = object;
         return this;
-    },
-
+    };
     /**
      * start an animation loop
      * @emit Animitter#start
      * @return {Animitter}
      */
-    start: function(){
-        var self = this;
-        if(this.__delay){
-            setTimeout(function(){
-                onStart(self);
-            }, this.__delay);
-        } else {
-            onStart(this);
+    Animitter.prototype.start = function () {
+        var _this = this;
+        var onStart = function () {
+            var rAFID;
+            //dont let a second animation start on the same object
+            //use *.on('update',fn)* instead
+            if (_this.__running) {
+                return _this;
+            }
+            Animitter.instancesRunning += 1;
+            _this.__running = true;
+            _this.__lastTime = Date.now();
+            _this.deltaTime = 0;
+            //emit **start** once at the beginning
+            _this.emit('start', _this.deltaTime, 0, _this.frameCount);
+            var lastRAFObject = _this.__requestAnimationFrameObject;
+            var drawFrame = function () {
+                var raf = _this.getRequestAnimationFrameObject();
+                if (lastRAFObject !== raf) {
+                    //if the requestAnimationFrameObject switched in-between,
+                    //then re-request with the new one to ensure proper update execution context
+                    //i.e. VRDisplay#submitFrame() may only be requested through VRDisplay#requestAnimationFrame(drawFrame)
+                    lastRAFObject = raf;
+                    raf.requestAnimationFrame(drawFrame);
+                    return;
+                }
+                if (_this.__isReadyForUpdate()) {
+                    _this.update();
+                }
+                if (_this.__running) {
+                    rAFID = raf.requestAnimationFrame(drawFrame);
+                }
+                else {
+                    raf.cancelAnimationFrame(rAFID);
+                }
+            };
+            _this.getRequestAnimationFrameObject().requestAnimationFrame(drawFrame);
+            return _this;
+        };
+        if (this.__delay) {
+            setTimeout(onStart, this.__delay);
+        }
+        else {
+            onStart();
         }
         return this;
-    },
-
+    };
     /**
      * stops the animation loop, does not mark as completed
      *
      * @emit Animitter#stop
      * @return {Animitter}
      */
-    stop: function(){
-        if( this.__running ){
+    Animitter.prototype.stop = function () {
+        if (this.__running) {
             this.__running = false;
-            exports.running -= 1;
+            Animitter.instancesRunning -= 1;
             this.emit('stop', this.deltaTime, this.elapsedTime, this.frameCount);
         }
         return this;
-    },
-
+    };
     /**
      * update the animation loop once
      *
      * @emit Animitter#update
      * @return {Animitter}
      */
-    update: function(){
+    Animitter.prototype.update = function () {
         this.frameCount++;
         /** @private */
         var now = Date.now();
         this.__lastTime = this.__lastTime || now;
-        this.deltaTime = (this.fixedDelta || exports.globalFixedDelta) ? 1000/Math.min(60, this.__fps) : now - this.__lastTime;
+        this.deltaTime = (this.fixedDelta || Animitter.globalFixedDelta) ? 1000 / Math.min(60, this.__fps) : now - this.__lastTime;
         this.elapsedTime += this.deltaTime;
         this.__lastTime = now;
-
         this.emit('update', this.deltaTime, this.elapsedTime, this.frameCount);
         return this;
-    }
-};
-
-
-
-for(var method in methods){
-    Animitter.prototype[method] = methods[method];
-}
-
-
+    };
+    /**
+     * keep a global counter of all loops running, helpful to watch in dev tools
+     */
+    Animitter.instancesRunning = 0;
+    /**
+     * if true, all `Animitter` instances will behave as if `options.fixedDelta = true`
+     */
+    Animitter.globalFixedDelta = false;
+    return Animitter;
+}(EventEmitter));
+exports.Animitter = Animitter;
+var isFunction = function (o) { return o && typeof o === 'function'; };
 /**
  * create an animitter instance,
  * @param {Object} [options]
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-function createAnimitter(options, fn){
-
-    if( arguments.length === 1 && typeof options === 'function'){
+function createAnimitter(options, fn) {
+    if (arguments.length === 1 && isFunction(options)) {
         fn = options;
         options = {};
     }
-
-    var _instance = new Animitter( options );
-
-    if( fn ){
+    var _instance = new Animitter(options);
+    if (fn) {
         _instance.on('update', fn);
     }
-
     return _instance;
 }
-
-module.exports = exports = createAnimitter;
-
+exports.default = createAnimitter;
 /**
  * create an animitter instance,
  * where the scope is bound in all functions
@@ -365,374 +373,498 @@ module.exports = exports = createAnimitter;
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-exports.bound = function(options, fn){
-
-    var loop = createAnimitter(options, fn),
-        functionKeys = functions(Animitter.prototype),
-        hasBind = !!Function.prototype.bind,
-        fnKey;
-
-    for(var i=0; i<functionKeys.length; i++){
+function bound(options, fn) {
+    var loop = createAnimitter(options, fn);
+    var functionKeys = functions(Animitter.prototype);
+    var hasBind = !!Function.prototype.bind;
+    var fnKey;
+    for (var i = 0; i < functionKeys.length; i++) {
         fnKey = functionKeys[i];
         loop[fnKey] = hasBind ? loop[fnKey].bind(loop) : bind(loop[fnKey], loop);
     }
-
     return loop;
-};
-
-
-exports.Animitter = Animitter;
-
-/**
- * if true, all `Animitter` instances will behave as if `options.fixedDelta = true`
- */
-exports.globalFixedDelta = false;
-
+}
+exports.bound = bound;
+;
+createAnimitter.Animitter = Animitter;
+createAnimitter.bound = bound;
+createAnimitter.EventEmitter = EventEmitter;
+Object.defineProperty(createAnimitter, 'running', {
+    get: function () {
+        return Animitter.instancesRunning;
+    }
+});
+Object.defineProperty(createAnimitter, 'globalFixedDelta', {
+    get: function () {
+        return Animitter.globalFixedDelta;
+    },
+    set: function (v) {
+        Animitter.globalFixedDelta = v;
+    }
+});
 //helpful to inherit from when using bundled
-exports.EventEmitter = EventEmitter;
-//keep a global counter of all loops running, helpful to watch in dev tools
-exports.running = 0;
-
-function bind(fn, scope){
-    if(typeof fn.bind === 'function'){
+//export { EventEmitter };
+function bind(fn, scope) {
+    if (typeof fn.bind === 'function') {
         return fn.bind(scope);
     }
-    return function(){
+    return function () {
         return fn.apply(scope, arguments);
     };
 }
-
-function functions(obj){
+function functions(obj) {
     var keys = Object.keys(obj);
     var arr = [];
-    for(var i=0; i<keys.length; i++){
-        if(typeof obj[keys[i]] === 'function'){
+    for (var i = 0; i < keys.length; i++) {
+        if (typeof obj[keys[i]] === 'function') {
             arr.push(keys[i]);
         }
     }
     return arr;
 }
-
-
-
 //polyfill Date.now for real-old browsers
 Date.now = Date.now || function now() {
     return new Date().getTime();
 };
+(module).exports = createAnimitter;
 
-},{"events":2,"inherits":4,"raf":5}],2:[function(require,module,exports){
-// Copyright Joyent, Inc. and other Node contributors.
-//
-// Permission is hereby granted, free of charge, to any person obtaining a
-// copy of this software and associated documentation files (the
-// "Software"), to deal in the Software without restriction, including
-// without limitation the rights to use, copy, modify, merge, publish,
-// distribute, sublicense, and/or sell copies of the Software, and to permit
-// persons to whom the Software is furnished to do so, subject to the
-// following conditions:
-//
-// The above copyright notice and this permission notice shall be included
-// in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
-// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
-// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
-// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
-// USE OR OTHER DEALINGS IN THE SOFTWARE.
+},{"eventemitter3":2,"raf":4}],2:[function(require,module,exports){
+'use strict';
 
-function EventEmitter() {
-  this._events = this._events || {};
-  this._maxListeners = this._maxListeners || undefined;
+var has = Object.prototype.hasOwnProperty
+  , prefix = '~';
+
+/**
+ * Constructor to create a storage for our `EE` objects.
+ * An `Events` instance is a plain object whose properties are event names.
+ *
+ * @constructor
+ * @private
+ */
+function Events() {}
+
+//
+// We try to not inherit from `Object.prototype`. In some engines creating an
+// instance in this way is faster than calling `Object.create(null)` directly.
+// If `Object.create(null)` is not supported we prefix the event names with a
+// character to make sure that the built-in object properties are not
+// overridden or used as an attack vector.
+//
+if (Object.create) {
+  Events.prototype = Object.create(null);
+
+  //
+  // This hack is needed because the `__proto__` property is still inherited in
+  // some old browsers like Android 4, iPhone 5.1, Opera 11 and Safari 5.
+  //
+  if (!new Events().__proto__) prefix = false;
 }
-module.exports = EventEmitter;
 
-// Backwards-compat with node 0.10.x
-EventEmitter.EventEmitter = EventEmitter;
+/**
+ * Representation of a single event listener.
+ *
+ * @param {Function} fn The listener function.
+ * @param {*} context The context to invoke the listener with.
+ * @param {Boolean} [once=false] Specify if the listener is a one-time listener.
+ * @constructor
+ * @private
+ */
+function EE(fn, context, once) {
+  this.fn = fn;
+  this.context = context;
+  this.once = once || false;
+}
 
-EventEmitter.prototype._events = undefined;
-EventEmitter.prototype._maxListeners = undefined;
-
-// By default EventEmitters will print a warning if more than 10 listeners are
-// added to it. This is a useful default which helps finding memory leaks.
-EventEmitter.defaultMaxListeners = 10;
-
-// Obviously not all Emitters should be limited to 10. This function allows
-// that to be increased. Set to zero for unlimited.
-EventEmitter.prototype.setMaxListeners = function(n) {
-  if (!isNumber(n) || n < 0 || isNaN(n))
-    throw TypeError('n must be a positive number');
-  this._maxListeners = n;
-  return this;
-};
-
-EventEmitter.prototype.emit = function(type) {
-  var er, handler, len, args, i, listeners;
-
-  if (!this._events)
-    this._events = {};
-
-  // If there is no 'error' event listener then throw.
-  if (type === 'error') {
-    if (!this._events.error ||
-        (isObject(this._events.error) && !this._events.error.length)) {
-      er = arguments[1];
-      if (er instanceof Error) {
-        throw er; // Unhandled 'error' event
-      }
-      throw TypeError('Uncaught, unspecified "error" event.');
-    }
+/**
+ * Add a listener for a given event.
+ *
+ * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+ * @param {(String|Symbol)} event The event name.
+ * @param {Function} fn The listener function.
+ * @param {*} context The context to invoke the listener with.
+ * @param {Boolean} once Specify if the listener is a one-time listener.
+ * @returns {EventEmitter}
+ * @private
+ */
+function addListener(emitter, event, fn, context, once) {
+  if (typeof fn !== 'function') {
+    throw new TypeError('The listener must be a function');
   }
 
-  handler = this._events[type];
+  var listener = new EE(fn, context || emitter, once)
+    , evt = prefix ? prefix + event : event;
 
-  if (isUndefined(handler))
-    return false;
+  if (!emitter._events[evt]) emitter._events[evt] = listener, emitter._eventsCount++;
+  else if (!emitter._events[evt].fn) emitter._events[evt].push(listener);
+  else emitter._events[evt] = [emitter._events[evt], listener];
 
-  if (isFunction(handler)) {
-    switch (arguments.length) {
-      // fast cases
-      case 1:
-        handler.call(this);
-        break;
-      case 2:
-        handler.call(this, arguments[1]);
-        break;
-      case 3:
-        handler.call(this, arguments[1], arguments[2]);
-        break;
-      // slower
-      default:
-        len = arguments.length;
-        args = new Array(len - 1);
-        for (i = 1; i < len; i++)
-          args[i - 1] = arguments[i];
-        handler.apply(this, args);
+  return emitter;
+}
+
+/**
+ * Clear event by name.
+ *
+ * @param {EventEmitter} emitter Reference to the `EventEmitter` instance.
+ * @param {(String|Symbol)} evt The Event name.
+ * @private
+ */
+function clearEvent(emitter, evt) {
+  if (--emitter._eventsCount === 0) emitter._events = new Events();
+  else delete emitter._events[evt];
+}
+
+/**
+ * Minimal `EventEmitter` interface that is molded against the Node.js
+ * `EventEmitter` interface.
+ *
+ * @constructor
+ * @public
+ */
+function EventEmitter() {
+  this._events = new Events();
+  this._eventsCount = 0;
+}
+
+/**
+ * Return an array listing the events for which the emitter has registered
+ * listeners.
+ *
+ * @returns {Array}
+ * @public
+ */
+EventEmitter.prototype.eventNames = function eventNames() {
+  var names = []
+    , events
+    , name;
+
+  if (this._eventsCount === 0) return names;
+
+  for (name in (events = this._events)) {
+    if (has.call(events, name)) names.push(prefix ? name.slice(1) : name);
+  }
+
+  if (Object.getOwnPropertySymbols) {
+    return names.concat(Object.getOwnPropertySymbols(events));
+  }
+
+  return names;
+};
+
+/**
+ * Return the listeners registered for a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @returns {Array} The registered listeners.
+ * @public
+ */
+EventEmitter.prototype.listeners = function listeners(event) {
+  var evt = prefix ? prefix + event : event
+    , handlers = this._events[evt];
+
+  if (!handlers) return [];
+  if (handlers.fn) return [handlers.fn];
+
+  for (var i = 0, l = handlers.length, ee = new Array(l); i < l; i++) {
+    ee[i] = handlers[i].fn;
+  }
+
+  return ee;
+};
+
+/**
+ * Return the number of listeners listening to a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @returns {Number} The number of listeners.
+ * @public
+ */
+EventEmitter.prototype.listenerCount = function listenerCount(event) {
+  var evt = prefix ? prefix + event : event
+    , listeners = this._events[evt];
+
+  if (!listeners) return 0;
+  if (listeners.fn) return 1;
+  return listeners.length;
+};
+
+/**
+ * Calls each of the listeners registered for a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @returns {Boolean} `true` if the event had listeners, else `false`.
+ * @public
+ */
+EventEmitter.prototype.emit = function emit(event, a1, a2, a3, a4, a5) {
+  var evt = prefix ? prefix + event : event;
+
+  if (!this._events[evt]) return false;
+
+  var listeners = this._events[evt]
+    , len = arguments.length
+    , args
+    , i;
+
+  if (listeners.fn) {
+    if (listeners.once) this.removeListener(event, listeners.fn, undefined, true);
+
+    switch (len) {
+      case 1: return listeners.fn.call(listeners.context), true;
+      case 2: return listeners.fn.call(listeners.context, a1), true;
+      case 3: return listeners.fn.call(listeners.context, a1, a2), true;
+      case 4: return listeners.fn.call(listeners.context, a1, a2, a3), true;
+      case 5: return listeners.fn.call(listeners.context, a1, a2, a3, a4), true;
+      case 6: return listeners.fn.call(listeners.context, a1, a2, a3, a4, a5), true;
     }
-  } else if (isObject(handler)) {
-    len = arguments.length;
-    args = new Array(len - 1);
-    for (i = 1; i < len; i++)
-      args[i - 1] = arguments[i];
 
-    listeners = handler.slice();
-    len = listeners.length;
-    for (i = 0; i < len; i++)
-      listeners[i].apply(this, args);
+    for (i = 1, args = new Array(len -1); i < len; i++) {
+      args[i - 1] = arguments[i];
+    }
+
+    listeners.fn.apply(listeners.context, args);
+  } else {
+    var length = listeners.length
+      , j;
+
+    for (i = 0; i < length; i++) {
+      if (listeners[i].once) this.removeListener(event, listeners[i].fn, undefined, true);
+
+      switch (len) {
+        case 1: listeners[i].fn.call(listeners[i].context); break;
+        case 2: listeners[i].fn.call(listeners[i].context, a1); break;
+        case 3: listeners[i].fn.call(listeners[i].context, a1, a2); break;
+        case 4: listeners[i].fn.call(listeners[i].context, a1, a2, a3); break;
+        default:
+          if (!args) for (j = 1, args = new Array(len -1); j < len; j++) {
+            args[j - 1] = arguments[j];
+          }
+
+          listeners[i].fn.apply(listeners[i].context, args);
+      }
+    }
   }
 
   return true;
 };
 
-EventEmitter.prototype.addListener = function(type, listener) {
-  var m;
-
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events)
-    this._events = {};
-
-  // To avoid recursion in the case that type === "newListener"! Before
-  // adding it to the listeners, first emit "newListener".
-  if (this._events.newListener)
-    this.emit('newListener', type,
-              isFunction(listener.listener) ?
-              listener.listener : listener);
-
-  if (!this._events[type])
-    // Optimize the case of one listener. Don't need the extra array object.
-    this._events[type] = listener;
-  else if (isObject(this._events[type]))
-    // If we've already got an array, just append.
-    this._events[type].push(listener);
-  else
-    // Adding the second element, need to change to array.
-    this._events[type] = [this._events[type], listener];
-
-  // Check for listener leak
-  if (isObject(this._events[type]) && !this._events[type].warned) {
-    var m;
-    if (!isUndefined(this._maxListeners)) {
-      m = this._maxListeners;
-    } else {
-      m = EventEmitter.defaultMaxListeners;
-    }
-
-    if (m && m > 0 && this._events[type].length > m) {
-      this._events[type].warned = true;
-      console.error('(node) warning: possible EventEmitter memory ' +
-                    'leak detected. %d listeners added. ' +
-                    'Use emitter.setMaxListeners() to increase limit.',
-                    this._events[type].length);
-      if (typeof console.trace === 'function') {
-        // not supported in IE 10
-        console.trace();
-      }
-    }
-  }
-
-  return this;
+/**
+ * Add a listener for a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @param {Function} fn The listener function.
+ * @param {*} [context=this] The context to invoke the listener with.
+ * @returns {EventEmitter} `this`.
+ * @public
+ */
+EventEmitter.prototype.on = function on(event, fn, context) {
+  return addListener(this, event, fn, context, false);
 };
 
-EventEmitter.prototype.on = EventEmitter.prototype.addListener;
-
-EventEmitter.prototype.once = function(type, listener) {
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  var fired = false;
-
-  function g() {
-    this.removeListener(type, g);
-
-    if (!fired) {
-      fired = true;
-      listener.apply(this, arguments);
-    }
-  }
-
-  g.listener = listener;
-  this.on(type, g);
-
-  return this;
+/**
+ * Add a one-time listener for a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @param {Function} fn The listener function.
+ * @param {*} [context=this] The context to invoke the listener with.
+ * @returns {EventEmitter} `this`.
+ * @public
+ */
+EventEmitter.prototype.once = function once(event, fn, context) {
+  return addListener(this, event, fn, context, true);
 };
 
-// emits a 'removeListener' event iff the listener was removed
-EventEmitter.prototype.removeListener = function(type, listener) {
-  var list, position, length, i;
+/**
+ * Remove the listeners of a given event.
+ *
+ * @param {(String|Symbol)} event The event name.
+ * @param {Function} fn Only remove the listeners that match this function.
+ * @param {*} context Only remove the listeners that have this context.
+ * @param {Boolean} once Only remove one-time listeners.
+ * @returns {EventEmitter} `this`.
+ * @public
+ */
+EventEmitter.prototype.removeListener = function removeListener(event, fn, context, once) {
+  var evt = prefix ? prefix + event : event;
 
-  if (!isFunction(listener))
-    throw TypeError('listener must be a function');
-
-  if (!this._events || !this._events[type])
-    return this;
-
-  list = this._events[type];
-  length = list.length;
-  position = -1;
-
-  if (list === listener ||
-      (isFunction(list.listener) && list.listener === listener)) {
-    delete this._events[type];
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-
-  } else if (isObject(list)) {
-    for (i = length; i-- > 0;) {
-      if (list[i] === listener ||
-          (list[i].listener && list[i].listener === listener)) {
-        position = i;
-        break;
-      }
-    }
-
-    if (position < 0)
-      return this;
-
-    if (list.length === 1) {
-      list.length = 0;
-      delete this._events[type];
-    } else {
-      list.splice(position, 1);
-    }
-
-    if (this._events.removeListener)
-      this.emit('removeListener', type, listener);
-  }
-
-  return this;
-};
-
-EventEmitter.prototype.removeAllListeners = function(type) {
-  var key, listeners;
-
-  if (!this._events)
-    return this;
-
-  // not listening for removeListener, no need to emit
-  if (!this._events.removeListener) {
-    if (arguments.length === 0)
-      this._events = {};
-    else if (this._events[type])
-      delete this._events[type];
+  if (!this._events[evt]) return this;
+  if (!fn) {
+    clearEvent(this, evt);
     return this;
   }
 
-  // emit removeListener for all listeners on all events
-  if (arguments.length === 0) {
-    for (key in this._events) {
-      if (key === 'removeListener') continue;
-      this.removeAllListeners(key);
+  var listeners = this._events[evt];
+
+  if (listeners.fn) {
+    if (
+      listeners.fn === fn &&
+      (!once || listeners.once) &&
+      (!context || listeners.context === context)
+    ) {
+      clearEvent(this, evt);
     }
-    this.removeAllListeners('removeListener');
-    this._events = {};
-    return this;
-  }
-
-  listeners = this._events[type];
-
-  if (isFunction(listeners)) {
-    this.removeListener(type, listeners);
   } else {
-    // LIFO order
-    while (listeners.length)
-      this.removeListener(type, listeners[listeners.length - 1]);
+    for (var i = 0, events = [], length = listeners.length; i < length; i++) {
+      if (
+        listeners[i].fn !== fn ||
+        (once && !listeners[i].once) ||
+        (context && listeners[i].context !== context)
+      ) {
+        events.push(listeners[i]);
+      }
+    }
+
+    //
+    // Reset the array, or remove it completely if we have no more listeners.
+    //
+    if (events.length) this._events[evt] = events.length === 1 ? events[0] : events;
+    else clearEvent(this, evt);
   }
-  delete this._events[type];
 
   return this;
 };
 
-EventEmitter.prototype.listeners = function(type) {
-  var ret;
-  if (!this._events || !this._events[type])
-    ret = [];
-  else if (isFunction(this._events[type]))
-    ret = [this._events[type]];
-  else
-    ret = this._events[type].slice();
-  return ret;
+/**
+ * Remove all listeners, or those of the specified event.
+ *
+ * @param {(String|Symbol)} [event] The event name.
+ * @returns {EventEmitter} `this`.
+ * @public
+ */
+EventEmitter.prototype.removeAllListeners = function removeAllListeners(event) {
+  var evt;
+
+  if (event) {
+    evt = prefix ? prefix + event : event;
+    if (this._events[evt]) clearEvent(this, evt);
+  } else {
+    this._events = new Events();
+    this._eventsCount = 0;
+  }
+
+  return this;
 };
 
-EventEmitter.listenerCount = function(emitter, type) {
-  var ret;
-  if (!emitter._events || !emitter._events[type])
-    ret = 0;
-  else if (isFunction(emitter._events[type]))
-    ret = 1;
-  else
-    ret = emitter._events[type].length;
-  return ret;
-};
+//
+// Alias methods names because people roll like that.
+//
+EventEmitter.prototype.off = EventEmitter.prototype.removeListener;
+EventEmitter.prototype.addListener = EventEmitter.prototype.on;
 
-function isFunction(arg) {
-  return typeof arg === 'function';
-}
+//
+// Expose the prefix.
+//
+EventEmitter.prefixed = prefix;
 
-function isNumber(arg) {
-  return typeof arg === 'number';
-}
+//
+// Allow `EventEmitter` to be imported as module namespace.
+//
+EventEmitter.EventEmitter = EventEmitter;
 
-function isObject(arg) {
-  return typeof arg === 'object' && arg !== null;
-}
-
-function isUndefined(arg) {
-  return arg === void 0;
+//
+// Expose the module.
+//
+if ('undefined' !== typeof module) {
+  module.exports = EventEmitter;
 }
 
 },{}],3:[function(require,module,exports){
 // shim for using process in browser
-
 var process = module.exports = {};
+
+// cached from whatever global is present so that test runners that stub it
+// don't break things.  But we need to wrap it in a try catch in case it is
+// wrapped in strict mode code which doesn't define any globals.  It's inside a
+// function because try/catches deoptimize in certain engines.
+
+var cachedSetTimeout;
+var cachedClearTimeout;
+
+function defaultSetTimout() {
+    throw new Error('setTimeout has not been defined');
+}
+function defaultClearTimeout () {
+    throw new Error('clearTimeout has not been defined');
+}
+(function () {
+    try {
+        if (typeof setTimeout === 'function') {
+            cachedSetTimeout = setTimeout;
+        } else {
+            cachedSetTimeout = defaultSetTimout;
+        }
+    } catch (e) {
+        cachedSetTimeout = defaultSetTimout;
+    }
+    try {
+        if (typeof clearTimeout === 'function') {
+            cachedClearTimeout = clearTimeout;
+        } else {
+            cachedClearTimeout = defaultClearTimeout;
+        }
+    } catch (e) {
+        cachedClearTimeout = defaultClearTimeout;
+    }
+} ())
+function runTimeout(fun) {
+    if (cachedSetTimeout === setTimeout) {
+        //normal enviroments in sane situations
+        return setTimeout(fun, 0);
+    }
+    // if setTimeout wasn't available but was latter defined
+    if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+        cachedSetTimeout = setTimeout;
+        return setTimeout(fun, 0);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedSetTimeout(fun, 0);
+    } catch(e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+            return cachedSetTimeout.call(null, fun, 0);
+        } catch(e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+            return cachedSetTimeout.call(this, fun, 0);
+        }
+    }
+
+
+}
+function runClearTimeout(marker) {
+    if (cachedClearTimeout === clearTimeout) {
+        //normal enviroments in sane situations
+        return clearTimeout(marker);
+    }
+    // if clearTimeout wasn't available but was latter defined
+    if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+        cachedClearTimeout = clearTimeout;
+        return clearTimeout(marker);
+    }
+    try {
+        // when when somebody has screwed with setTimeout but no I.E. maddness
+        return cachedClearTimeout(marker);
+    } catch (e){
+        try {
+            // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+            return cachedClearTimeout.call(null, marker);
+        } catch (e){
+            // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+            // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+            return cachedClearTimeout.call(this, marker);
+        }
+    }
+
+
+
+}
 var queue = [];
 var draining = false;
 var currentQueue;
 var queueIndex = -1;
 
 function cleanUpNextTick() {
+    if (!draining || !currentQueue) {
+        return;
+    }
     draining = false;
     if (currentQueue.length) {
         queue = currentQueue.concat(queue);
@@ -748,7 +880,7 @@ function drainQueue() {
     if (draining) {
         return;
     }
-    var timeout = setTimeout(cleanUpNextTick);
+    var timeout = runTimeout(cleanUpNextTick);
     draining = true;
 
     var len = queue.length;
@@ -756,14 +888,16 @@ function drainQueue() {
         currentQueue = queue;
         queue = [];
         while (++queueIndex < len) {
-            currentQueue[queueIndex].run();
+            if (currentQueue) {
+                currentQueue[queueIndex].run();
+            }
         }
         queueIndex = -1;
         len = queue.length;
     }
     currentQueue = null;
     draining = false;
-    clearTimeout(timeout);
+    runClearTimeout(timeout);
 }
 
 process.nextTick = function (fun) {
@@ -775,7 +909,7 @@ process.nextTick = function (fun) {
     }
     queue.push(new Item(fun, args));
     if (queue.length === 1 && !draining) {
-        setTimeout(drainQueue, 0);
+        runTimeout(drainQueue);
     }
 };
 
@@ -803,12 +937,15 @@ process.off = noop;
 process.removeListener = noop;
 process.removeAllListeners = noop;
 process.emit = noop;
+process.prependListener = noop;
+process.prependOnceListener = noop;
+
+process.listeners = function (name) { return [] }
 
 process.binding = function (name) {
     throw new Error('process.binding is not supported');
 };
 
-// TODO(shtylman)
 process.cwd = function () { return '/' };
 process.chdir = function (dir) {
     throw new Error('process.chdir is not supported');
@@ -816,31 +953,6 @@ process.chdir = function (dir) {
 process.umask = function() { return 0; };
 
 },{}],4:[function(require,module,exports){
-if (typeof Object.create === 'function') {
-  // implementation from standard node.js 'util' module
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    ctor.prototype = Object.create(superCtor.prototype, {
-      constructor: {
-        value: ctor,
-        enumerable: false,
-        writable: true,
-        configurable: true
-      }
-    });
-  };
-} else {
-  // old school shim for old browsers
-  module.exports = function inherits(ctor, superCtor) {
-    ctor.super_ = superCtor
-    var TempCtor = function () {}
-    TempCtor.prototype = superCtor.prototype
-    ctor.prototype = new TempCtor()
-    ctor.prototype.constructor = ctor
-  }
-}
-
-},{}],5:[function(require,module,exports){
 var now = require('performance-now')
   , global = typeof window === 'undefined' ? {} : window
   , vendors = ['moz', 'webkit']
@@ -910,7 +1022,7 @@ module.exports.cancel = function() {
   caf.apply(global, arguments)
 }
 
-},{"performance-now":6}],6:[function(require,module,exports){
+},{"performance-now":5}],5:[function(require,module,exports){
 (function (process){
 // Generated by CoffeeScript 1.7.1
 (function() {

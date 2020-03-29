@@ -510,3 +510,12 @@ function functions(obj: any): string[] {
 Date.now = Date.now || function now() {
     return new Date().getTime();
 };
+
+
+/**
+ * this is semi-hacky way of making animitter work as before both in js and ts
+ * import animitter from 'animitter';
+ * const animitter = require('animitter');
+ */
+declare var module: any;
+(module).exports = createAnimitter;
