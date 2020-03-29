@@ -2,6 +2,7 @@ import * as EventEmitter from 'eventemitter3';
 import * as raf from 'raf';
 
 
+export { EventEmitter };
 
 interface RAFObject {
     requestAnimationFrame: (callback: FrameRequestCallback) => number;
@@ -15,13 +16,7 @@ interface AnimitterOptions {
     requestAnimationFrameObject?: RAFObject
 }
 
-type UpdateListener = (deltaTime: number, elapsedTime: number, frameCount: number) => void;
-interface AnimitterEvents {
-    complete: UpdateListener;
-    start: UpdateListener;
-    stop: UpdateListener;
-    update: UpdateListener;
-}
+type UpdateListener = (deltaTime: number, elapsedTime: number, frameCount: number) => any;
 
 //   interface AnimitterEventEmitter {
 //     on<K extends keyof BuiltInEvents>(deltaTime: number, elapsedTime: number, frameCount: number): void;
@@ -67,13 +62,20 @@ function makeThrottle(fps: number): Predicate {
 
 interface AnimitterEvents {
     on: {
-        (eventType: 'complete', listenerFn: UpdateListener, context?: any): Animitter;
-        (eventType: 'start', listenerFn: UpdateListener, context?: any): Animitter;
-        (eventType: 'stop', listenerFn: UpdateListener, context?: any): Animitter;
-        (eventType: 'update', listenerFn: UpdateListener, context?: any): Animitter;
+        (eventType: 'complete' | 'start' | 'stop' | 'update', listenerFn: UpdateListener, context?: any): Animitter;
         (eventType: string, listenerFn: (...args: any[]) => void, context?: any): Animitter;
     }
 }
+
+interface AnimitterEventTypes {
+    complete: string;
+    reset: string;
+    start: string;
+    stop: string;
+    update: string;
+}
+
+//type AnimitterEventTypes = 'complete' | 'start' | 'stop' | 'update';
 
 /**
  * Animitter provides event-based loops for the browser and node,
@@ -86,7 +88,7 @@ interface AnimitterEvents {
  * @constructor
  */
 
- class Animitter extends EventEmitter implements AnimitterEvents {
+ export class Animitter extends EventEmitter {
 
     /**
      * keep a global counter of all loops running, helpful to watch in dev tools
@@ -147,9 +149,9 @@ interface AnimitterEvents {
      * @returns {Animitter}
      */
     complete() {
-        this.stop();
         this.__completed = true;
-        this.emit('complete', this.frameCount, this.deltaTime);
+        this.stop();
+        this.emit('complete', this.deltaTime, this.elapsedTime, this.frameCount);
         return this;
     }
 
@@ -239,7 +241,36 @@ interface AnimitterEvents {
         return this.__running;
     }
 
-    onUpdate(listenerFn: UpdateListener, context?: any) {
+    public on<T extends string & keyof AnimitterEventTypes>(eventType: T, listenerFn: UpdateListener, context?: any): this;
+    public on(eventType: string, listenerFn: (...args: any[]) => void, context?: any): this;
+    public on(eventType: any, listenerFn: (...args: any[]) => void, context?: any): this {
+        super.on(eventType, listenerFn, context);
+        return this;
+    }
+    public once<T extends string & keyof AnimitterEventTypes>(eventType: T, listenerFn: UpdateListener, context?: any): this;
+    public once(eventType: string, listenerFn: (...args: any[]) => void, context?: any): this;
+    public once(eventType: any, listenerFn: (...args: any[]) => void, context?: any): this {
+        super.once(eventType, listenerFn, context);
+        return this;
+    }
+
+    public onComplete(listenerFn: UpdateListener, context?: any) {
+        return this.on('complete', listenerFn, context);
+    }
+
+    public onReset(listenerFn: UpdateListener, context?: any) {
+        return this.on('reset', listenerFn, context);
+    }
+
+    public onStart(listenerFn: UpdateListener, context?: any) {
+        return this.on('start', listenerFn, context);
+    }
+
+    public onStop(listenerFn: UpdateListener, context?: any) {
+        return this.on('stop', listenerFn, context);
+    }
+
+    public onUpdate(listenerFn: UpdateListener, context?: any) {
         return this.on('update', listenerFn, context);
     }
 
@@ -389,7 +420,7 @@ const isFunction = (o?: any): o is Function => o && typeof o === 'function';
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-function createAnimitter(options?: AnimitterOptions | UpdateListener, fn?: UpdateListener){
+export default function createAnimitter(options?: AnimitterOptions | UpdateListener, fn?: UpdateListener){
 
     if( arguments.length === 1 && isFunction(options)){
         fn = options;
@@ -413,7 +444,7 @@ function createAnimitter(options?: AnimitterOptions | UpdateListener, fn?: Updat
  * @param {Function} fn( deltaTime:Number, elapsedTime:Number, frameCount:Number )
  * @returns {Animitter}
  */
-function bound(options?: AnimitterOptions | UpdateListener, fn?: UpdateListener){
+export function bound(options?: AnimitterOptions | UpdateListener, fn?: UpdateListener){
 
     const loop = createAnimitter(options, fn) as any;
     const functionKeys = functions(Animitter.prototype);
@@ -429,21 +460,6 @@ function bound(options?: AnimitterOptions | UpdateListener, fn?: UpdateListener)
     return loop as Animitter;
 };
 
-interface AnimitterConstructor {
-    new (options?: AnimitterOptions) : Animitter;
-}
-
-interface EventEmitterConstructor {
-    new (): EventEmitter;
-}
-
-interface AnimitterModule {
-    Animitter: AnimitterConstructor;
-    bound: Function;
-    EventEmitter: EventEmitterConstructor;
-    readonly running: number;
-    globalFixedDelta: boolean;
-}
 
 createAnimitter.Animitter = Animitter;
 createAnimitter.bound = bound;
@@ -463,11 +479,6 @@ Object.defineProperty(createAnimitter, 'globalFixedDelta', {
         Animitter.globalFixedDelta = v;
     }
 });
-
-const animitter = (createAnimitter as unknown) as AnimitterModule;
-
-export = animitter;
-
 
 
 //helpful to inherit from when using bundled
