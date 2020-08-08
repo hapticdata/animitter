@@ -1,7 +1,6 @@
 import * as EventEmitter from 'eventemitter3';
 import * as raf from 'raf';
 
-
 export { EventEmitter };
 
 interface RAFObject {
@@ -17,11 +16,6 @@ interface AnimitterOptions {
 }
 
 type UpdateListener = (deltaTime: number, elapsedTime: number, frameCount: number) => any;
-
-//   interface AnimitterEventEmitter {
-//     on<K extends keyof BuiltInEvents>(deltaTime: number, elapsedTime: number, frameCount: number): void;
-//     // and so on for each method
-//   }
 
 //the same as off window unless polyfilled or in node
 const defaultRAFObject: RAFObject = {
@@ -60,13 +54,6 @@ function makeThrottle(fps: number): Predicate {
     };
 }
 
-interface AnimitterEvents {
-    on: {
-        (eventType: 'complete' | 'start' | 'stop' | 'update', listenerFn: UpdateListener, context?: any): Animitter;
-        (eventType: string, listenerFn: (...args: any[]) => void, context?: any): Animitter;
-    }
-}
-
 interface AnimitterEventTypes {
     complete: string;
     reset: string;
@@ -88,7 +75,7 @@ interface AnimitterEventTypes {
  * @constructor
  */
 
- export class Animitter extends EventEmitter {
+ export class Animitter extends EventEmitter<string> {
 
     /**
      * keep a global counter of all loops running, helpful to watch in dev tools
@@ -461,7 +448,7 @@ export function bound(options?: AnimitterOptions | UpdateListener, fn?: UpdateLi
 };
 
 
-createAnimitter.Animitter = Animitter;
+// createAnimitter.Animitter = Animitter;
 createAnimitter.bound = bound;
 createAnimitter.EventEmitter = EventEmitter;
 
@@ -517,5 +504,5 @@ Date.now = Date.now || function now() {
  * import animitter from 'animitter';
  * const animitter = require('animitter');
  */
-declare var module: any;
-(module).exports = createAnimitter;
+// declare var module: any;
+// (module).exports = createAnimitter;

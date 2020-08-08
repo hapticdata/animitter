@@ -1,9 +1,9 @@
 {
   "name": "animitter",
-  "version": "4.0.0-beta",
+  "version": "4.0.1-beta",
   "description": "Animitter is an animation loop + EventEmitter for browser, node, browserify or amd.",
   "main": "./index.js",
-  "types": "index.d.ts",
+  "types": "./index.d.ts",
   "directories": {
     "test": "test"
   },
@@ -32,7 +32,7 @@
     "uglify-js": "^3.4.9"
   },
   "dependencies": {
-    "eventemitter3": "^3.1.0",
+    "eventemitter3": "^4.0.0",
     "raf": "^3.1.0"
   }
 }
