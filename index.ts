@@ -3,19 +3,19 @@ import * as raf from 'raf';
 
 export { EventEmitter };
 
-interface RAFObject {
+export interface RAFObject {
     requestAnimationFrame: (callback: FrameRequestCallback) => number;
     cancelAnimationFrame: ( id: number) => void;
 }
 
-interface AnimitterOptions {
+export interface AnimitterOptions {
     delay?: number;
     fixedDelta?: boolean;
     fps?: number;
     requestAnimationFrameObject?: RAFObject
 }
 
-type UpdateListener = (deltaTime: number, elapsedTime: number, frameCount: number) => any;
+export type UpdateListener = (deltaTime: number, elapsedTime: number, frameCount: number) => any;
 
 //the same as off window unless polyfilled or in node
 const defaultRAFObject: RAFObject = {
@@ -54,7 +54,16 @@ function makeThrottle(fps: number): Predicate {
     };
 }
 
-interface AnimitterEventTypes {
+// export enum AnimitterBuiltInTypes {
+//     COMPLETE = 'complete',
+//     RESET = 'reset',
+//     START = 'start',
+//     STOP = 'stop',
+//     UPDATE = 'update'
+// };
+
+
+export interface AnimitterEventTypes {
     complete: string;
     reset: string;
     start: string;
@@ -448,24 +457,8 @@ export function bound(options?: AnimitterOptions | UpdateListener, fn?: UpdateLi
 };
 
 
-// createAnimitter.Animitter = Animitter;
-createAnimitter.bound = bound;
-createAnimitter.EventEmitter = EventEmitter;
-
-Object.defineProperty(createAnimitter, 'running', {
-    get: function() {
-        return Animitter.instancesRunning;
-    }
-});
-
-Object.defineProperty(createAnimitter, 'globalFixedDelta', {
-    get: function() {
-        return Animitter.globalFixedDelta;
-    },
-    set: function(v: boolean) {
-        Animitter.globalFixedDelta = v;
-    }
-});
+export const instancesRunning = () => Animitter.instancesRunning;
+export const globalFixedDelta = () => Animitter.globalFixedDelta;
 
 
 //helpful to inherit from when using bundled

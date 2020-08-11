@@ -1,6 +1,6 @@
 {
   "name": "animitter",
-  "version": "4.0.1-beta",
+  "version": "4.0.2-beta",
   "description": "Animitter is an animation loop + EventEmitter for browser, node, browserify or amd.",
   "main": "./index.js",
   "types": "./index.d.ts",

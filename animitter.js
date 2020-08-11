@@ -1,5 +1,5 @@
-// Animitter 4.0.0-beta
-// Build: 2020-3-29
+// Animitter 4.0.2-beta
+// Build: 2020-8-7
 // by Kyle Phillips - http://haptic-data.com
 // Available under MIT License
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.animitter = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
@@ -21,10 +21,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var EventEmitter = require("eventemitter3");
 exports.EventEmitter = EventEmitter;
 var raf = require("raf");
-//   interface AnimitterEventEmitter {
-//     on<K extends keyof BuiltInEvents>(deltaTime: number, elapsedTime: number, frameCount: number): void;
-//     // and so on for each method
-//   }
 //the same as off window unless polyfilled or in node
 var defaultRAFObject = {
     requestAnimationFrame: raf,
@@ -386,22 +382,8 @@ function bound(options, fn) {
 }
 exports.bound = bound;
 ;
-createAnimitter.Animitter = Animitter;
-createAnimitter.bound = bound;
-createAnimitter.EventEmitter = EventEmitter;
-Object.defineProperty(createAnimitter, 'running', {
-    get: function () {
-        return Animitter.instancesRunning;
-    }
-});
-Object.defineProperty(createAnimitter, 'globalFixedDelta', {
-    get: function () {
-        return Animitter.globalFixedDelta;
-    },
-    set: function (v) {
-        Animitter.globalFixedDelta = v;
-    }
-});
+exports.instancesRunning = function () { return Animitter.instancesRunning; };
+exports.globalFixedDelta = function () { return Animitter.globalFixedDelta; };
 //helpful to inherit from when using bundled
 //export { EventEmitter };
 function bind(fn, scope) {
@@ -426,7 +408,13 @@ function functions(obj) {
 Date.now = Date.now || function now() {
     return new Date().getTime();
 };
-(module).exports = createAnimitter;
+/**
+ * this is semi-hacky way of making animitter work as before both in js and ts
+ * import animitter from 'animitter';
+ * const animitter = require('animitter');
+ */
+// declare var module: any;
+// (module).exports = createAnimitter;
 
 },{"eventemitter3":2,"raf":4}],2:[function(require,module,exports){
 'use strict';
